@@ -316,6 +316,66 @@
     }
 
     /* ===================
+       Suggested videos + watch history tabs.
+    ====================== */
+    .suggested-section {
+      margin-top: 3.5rem;
+    }
+
+    .suggested-heading {
+      font-family: 'PT Serif', Georgia, serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.85rem;
+    }
+
+    .grid-tabs {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      border-bottom: 1px solid var(--hairline);
+      margin-bottom: 1.25rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 0.6rem 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn.is-active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+
+    .clear-history-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      padding: 0.6rem 0;
+    }
+
+    .clear-history-btn:hover {
+      color: var(--accent);
+    }
+
+    /* ===================
        Search results — full page width.
     ====================== */
     .search-results {
@@ -923,71 +983,102 @@
     }
 
     /**
-     * Render search results as clickable video cards.
+     * Build a single clickable video card. `result.historyMeta`, if set,
+     * replaces the usual "views · uploaded" line (used by the watch
+     * history panel to show "watched X ago" instead).
      */
-    function renderSearchResults(results) {
-      const grid = document.getElementById('search-results');
+    function buildResultCard(result) {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'search-result';
+      card.setAttribute('aria-label', 'Watch: ' + result.title);
+
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'search-result-thumb';
+
+      const thumb = document.createElement('img');
+      thumb.src = result.thumbnailUrl;
+      thumb.alt = '';
+      thumb.loading = 'lazy';
+      thumbWrap.appendChild(thumb);
+
+      const durationText = formatDuration(result.duration);
+      if (durationText) {
+        const durationPill = document.createElement('span');
+        durationPill.className = 'search-result-duration';
+        durationPill.textContent = durationText;
+        thumbWrap.appendChild(durationPill);
+      }
+
+      card.appendChild(thumbWrap);
+
+      const title = document.createElement('span');
+      title.className = 'search-result-title';
+      title.textContent = result.title;
+      card.appendChild(title);
+
+      const channel = document.createElement('span');
+      channel.className = 'search-result-channel';
+      channel.textContent = result.channelTitle;
+      card.appendChild(channel);
+
+      const metaParts = [];
+      if (result.historyMeta) {
+        metaParts.push(result.historyMeta);
+      } else {
+        if (result.viewCount != null) metaParts.push(formatViewCount(result.viewCount));
+        if (result.publishedAt) metaParts.push(formatRelativeDate(result.publishedAt));
+      }
+
+      if (metaParts.length) {
+        const meta = document.createElement('span');
+        meta.className = 'search-result-meta';
+        meta.textContent = metaParts.join(' · ');
+        card.appendChild(meta);
+      }
+
+      card.addEventListener('click', function () {
+        openVideoModal(
+          { videoId: result.videoId },
+          {
+            title: result.title,
+            channelTitle: result.channelTitle,
+            thumbnailUrl: result.thumbnailUrl,
+            duration: result.duration,
+          }
+        );
+      });
+
+      return card;
+    }
+
+    /**
+     * Render a list of results into any grid container, or a status
+     * message if the list is empty.
+     */
+    function renderResultsGrid(grid, results, emptyMessage) {
       if (!grid) return;
 
       grid.innerHTML = '';
 
       if (!results.length) {
-        setSearchStatus('No videos found.');
+        const status = document.createElement('p');
+        status.className = 'search-status';
+        status.textContent = emptyMessage;
+        grid.appendChild(status);
         return;
       }
 
       results.forEach(function (result) {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'search-result';
-        card.setAttribute('aria-label', 'Watch: ' + result.title);
-
-        const thumbWrap = document.createElement('div');
-        thumbWrap.className = 'search-result-thumb';
-
-        const thumb = document.createElement('img');
-        thumb.src = result.thumbnailUrl;
-        thumb.alt = '';
-        thumb.loading = 'lazy';
-        thumbWrap.appendChild(thumb);
-
-        const durationText = formatDuration(result.duration);
-        if (durationText) {
-          const durationPill = document.createElement('span');
-          durationPill.className = 'search-result-duration';
-          durationPill.textContent = durationText;
-          thumbWrap.appendChild(durationPill);
-        }
-
-        card.appendChild(thumbWrap);
-
-        const title = document.createElement('span');
-        title.className = 'search-result-title';
-        title.textContent = result.title;
-        card.appendChild(title);
-
-        const channel = document.createElement('span');
-        channel.className = 'search-result-channel';
-        channel.textContent = result.channelTitle;
-        card.appendChild(channel);
-
-        const metaParts = [];
-        if (result.viewCount != null) metaParts.push(formatViewCount(result.viewCount));
-        if (result.publishedAt) metaParts.push(formatRelativeDate(result.publishedAt));
-
-        if (metaParts.length) {
-          const meta = document.createElement('span');
-          meta.className = 'search-result-meta';
-          meta.textContent = metaParts.join(' · ');
-          card.appendChild(meta);
-        }
-
-        card.addEventListener('click', function () {
-          openVideoModal({ videoId: result.videoId }, result.title);
-        });
-
-        grid.appendChild(card);
+        grid.appendChild(buildResultCard(result));
       });
+    }
+
+    /**
+     * Render search results as clickable video cards.
+     */
+    function renderSearchResults(results) {
+      renderResultsGrid(document.getElementById('search-results'), results, 'No videos found.');
     }
 
     /**
@@ -1002,6 +1093,7 @@
 
       const requestId = ++searchRequestId;
 
+      setSuggestedSectionVisible(false);
       setToolbarVisible(false);
       setSearchStatus('Searching…');
 
@@ -1048,6 +1140,7 @@
           currentResults = [];
           setToolbarVisible(false);
           setSearchStatus('');
+          setSuggestedSectionVisible(true);
           return;
         }
 
@@ -1055,6 +1148,252 @@
           runSearch(query);
         }, SEARCH_DEBOUNCE_MS);
       });
+    }
+
+    /**
+     * Watch history — stored client-side in localStorage, no sign-up, no
+     * server-side tracking. Capped and deduped by video, most recent first.
+     */
+    const HISTORY_KEY = 'cleantube:history';
+    const HISTORY_MAX = 24;
+
+    function getWatchHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function addToWatchHistory(entry) {
+      if (!entry || !entry.videoId) return;
+
+      try {
+        const history = getWatchHistory().filter(function (h) { return h.videoId !== entry.videoId; });
+
+        history.unshift({
+          videoId: entry.videoId,
+          title: entry.title || '',
+          channelTitle: entry.channelTitle || '',
+          thumbnailUrl: entry.thumbnailUrl || '',
+          duration: entry.duration || null,
+          watchedAt: Date.now(),
+        });
+
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_MAX)));
+      } catch (_) {}
+    }
+
+    function clearWatchHistory() {
+      try { localStorage.removeItem(HISTORY_KEY); } catch (_) {}
+    }
+
+    /**
+     * Look up a single video's metadata (used to backfill title/channel/
+     * thumbnail for videos opened via pasted link, so watch history shows
+     * more than just an ID).
+     */
+    async function fetchVideoInfo(videoId) {
+      const response = await fetch('/api/search?id=' + encodeURIComponent(videoId));
+      const data = await response.json().catch(function () { return null; });
+      if (!response.ok || !data || !data.result) return null;
+      return data.result;
+    }
+
+    async function recordWatch(videoId, meta) {
+      if (meta && meta.title) {
+        addToWatchHistory({
+          videoId: videoId,
+          title: meta.title,
+          channelTitle: meta.channelTitle,
+          thumbnailUrl: meta.thumbnailUrl,
+          duration: meta.duration,
+        });
+        refreshHistoryPanelIfVisible();
+        return;
+      }
+
+      try {
+        const info = await fetchVideoInfo(videoId);
+        if (!info) return;
+
+        addToWatchHistory(info);
+        refreshHistoryPanelIfVisible();
+
+        // Backfill the modal title bar if still on this same video.
+        if (currentVideoId === videoId) {
+          const titleEl = document.getElementById('video-modal-title');
+          if (titleEl && !titleEl.textContent) titleEl.textContent = info.title;
+        }
+      } catch (_) {}
+    }
+
+    /**
+     * Suggested videos: seeded from the most recently watched channel when
+     * history exists, falling back to YouTube's own "trending now" chart
+     * for first-time visitors. Cached client-side for an hour so repeat
+     * visits in a session don't re-spend search quota.
+     */
+    const SUGGESTED_CACHE_KEY = 'cleantube:suggested-cache';
+    const SUGGESTED_CACHE_MS = 60 * 60 * 1000; // 1 hour
+    let lastSuggestedHeading = 'Suggested for you';
+
+    function getSuggestedCache(seedKey) {
+      try {
+        const raw = localStorage.getItem(SUGGESTED_CACHE_KEY);
+        if (!raw) return null;
+
+        const data = JSON.parse(raw);
+        if (!data || data.seedKey !== seedKey) return null;
+        if (Date.now() - (data.cachedAt || 0) > SUGGESTED_CACHE_MS) return null;
+
+        return { results: data.results, heading: data.heading };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function setSuggestedCache(seedKey, results, heading) {
+      try {
+        localStorage.setItem(SUGGESTED_CACHE_KEY, JSON.stringify({
+          seedKey: seedKey,
+          results: results,
+          heading: heading,
+          cachedAt: Date.now(),
+        }));
+      } catch (_) {}
+    }
+
+    async function fetchTrending() {
+      const response = await fetch('/api/search?trending=1');
+      const data = await response.json().catch(function () { return null; });
+
+      if (!response.ok) {
+        throw new Error((data && data.error) || 'Failed to load trending videos.');
+      }
+
+      return (data && Array.isArray(data.results)) ? data.results : [];
+    }
+
+    async function loadSuggestions() {
+      const container = document.getElementById('suggested-results');
+      const heading = document.getElementById('suggested-heading');
+      if (!container) return;
+
+      const history = getWatchHistory();
+      const seedChannel = history.length ? history[0].channelTitle : null;
+      const seedKey = seedChannel || 'trending';
+
+      const cached = getSuggestedCache(seedKey);
+      if (cached) {
+        lastSuggestedHeading = cached.heading;
+        if (heading) heading.textContent = cached.heading;
+        renderResultsGrid(container, cached.results, "Couldn't load suggestions.");
+        return;
+      }
+
+      renderResultsGrid(container, [], 'Loading suggestions…');
+
+      try {
+        let results = [];
+        let headingText = 'Trending now';
+
+        if (seedChannel) {
+          const watchedIds = new Set(history.map(function (h) { return h.videoId; }));
+          const channelResults = await searchYouTubeVideos(seedChannel).catch(function () { return []; });
+          results = channelResults.filter(function (r) { return !watchedIds.has(r.videoId); }).slice(0, 12);
+          if (results.length) headingText = 'Because you watched ' + seedChannel;
+        }
+
+        if (!results.length) {
+          results = await fetchTrending();
+          headingText = 'Trending now';
+        }
+
+        lastSuggestedHeading = headingText;
+        if (heading) heading.textContent = headingText;
+        renderResultsGrid(container, results, "Couldn't load suggestions.");
+        setSuggestedCache(seedKey, results, headingText);
+      } catch (err) {
+        renderResultsGrid(container, [], "Couldn't load suggestions.");
+      }
+    }
+
+    function setSuggestedSectionVisible(visible) {
+      const section = document.getElementById('suggested-section');
+      if (section) section.hidden = !visible;
+    }
+
+    /**
+     * Render the watch history panel (most recent first).
+     */
+    function renderHistoryPanel() {
+      const container = document.getElementById('history-results');
+      const clearBtn = document.getElementById('clear-history-btn');
+      const history = getWatchHistory();
+
+      renderResultsGrid(
+        container,
+        history.map(function (h) {
+          return {
+            videoId: h.videoId,
+            title: h.title,
+            channelTitle: h.channelTitle,
+            thumbnailUrl: h.thumbnailUrl,
+            duration: h.duration,
+            historyMeta: 'Watched ' + formatRelativeDate(new Date(h.watchedAt).toISOString()),
+          };
+        }),
+        "You haven't watched anything yet."
+      );
+
+      if (clearBtn) clearBtn.hidden = !history.length;
+    }
+
+    function refreshHistoryPanelIfVisible() {
+      const panel = document.getElementById('history-panel');
+      if (panel && !panel.hidden) renderHistoryPanel();
+    }
+
+    /**
+     * Tabs between the "Suggested" and "History" panels.
+     */
+    function setupGridTabs() {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const clearBtn = document.getElementById('clear-history-btn');
+      const suggestedPanel = document.getElementById('suggested-panel');
+      const historyPanel = document.getElementById('history-panel');
+      const heading = document.getElementById('suggested-heading');
+
+      if (!tabs.length) return;
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          tabs.forEach(function (t) { t.classList.remove('is-active'); });
+          tab.classList.add('is-active');
+
+          const target = tab.getAttribute('data-tab');
+          if (suggestedPanel) suggestedPanel.hidden = target !== 'suggested';
+          if (historyPanel) historyPanel.hidden = target !== 'history';
+
+          if (target === 'history') {
+            if (heading) heading.textContent = 'Watch history';
+            renderHistoryPanel();
+          } else {
+            if (heading) heading.textContent = lastSuggestedHeading;
+            if (clearBtn) clearBtn.hidden = true;
+          }
+        });
+      });
+
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          clearWatchHistory();
+          renderHistoryPanel();
+        });
+      }
     }
 
     /**
@@ -1189,7 +1528,7 @@
           onReady: function () {
             ytPlayerReady = true;
             if (pendingLoad) {
-              applyLoad(pendingLoad.parsed, pendingLoad.title);
+              applyLoad(pendingLoad);
               pendingLoad = null;
             }
           },
@@ -1213,7 +1552,7 @@
       }
     }
 
-    function applyLoad(parsed, title) {
+    function applyLoad(parsed) {
       currentVideoId = parsed.videoId || null;
 
       if (parsed.playlistId) {
@@ -1228,20 +1567,25 @@
       }
     }
 
-    function loadIntoPlayer(parsed, title) {
+    function loadIntoPlayer(parsed) {
       if (!ytPlayerReady || !ytPlayer) {
-        pendingLoad = { parsed: parsed, title: title };
+        pendingLoad = parsed;
         loadYouTubeIframeApi();
         return;
       }
 
-      applyLoad(parsed, title);
+      applyLoad(parsed);
     }
 
     /**
      * Video modal: open (full), minimize (draggable PiP), restore, close.
+     *
+     * `meta` is optional: { title, channelTitle, thumbnailUrl, duration }.
+     * Search results already carry it; pasted links don't, so it's
+     * backfilled asynchronously via a single-video lookup (see
+     * recordWatch) once the video starts.
      */
-    function openVideoModal(parsed, title) {
+    function openVideoModal(parsed, meta) {
       if (!parsed || (!parsed.videoId && !parsed.playlistId)) return;
 
       const modal = document.getElementById('video-modal');
@@ -1249,14 +1593,18 @@
       if (!modal) return;
 
       if (titleEl) {
-        titleEl.textContent = title || '';
+        titleEl.textContent = (meta && meta.title) || '';
       }
 
       restoreVideoModal();
       modal.hidden = false;
 
-      loadIntoPlayer(parsed, title);
-      updateMediaSession(title);
+      loadIntoPlayer(parsed);
+      updateMediaSession(meta && meta.title);
+
+      if (parsed.videoId) {
+        recordWatch(parsed.videoId, meta);
+      }
     }
 
     function closeVideoModal() {
@@ -1382,6 +1730,8 @@
       setupSortControl();
       setupVideoModalControls();
       setupVideoModalDrag();
+      setupGridTabs();
+      loadSuggestions();
 
       window.addEventListener('beforeunload', saveCurrentProgress);
       document.addEventListener('visibilitychange', function () {
@@ -1438,6 +1788,21 @@
         <button type="submit" class="text-btn">Watch</button>
       </form>
     </header>
+
+    <div id="suggested-section" class="suggested-section">
+      <h2 id="suggested-heading" class="suggested-heading">Suggested for you</h2>
+      <div class="grid-tabs">
+        <button type="button" class="tab-btn is-active" data-tab="suggested">Suggested</button>
+        <button type="button" class="tab-btn" data-tab="history">History</button>
+        <button type="button" class="clear-history-btn" id="clear-history-btn" hidden>Clear history</button>
+      </div>
+      <div id="suggested-panel">
+        <div id="suggested-results" class="search-results" aria-live="polite"></div>
+      </div>
+      <div id="history-panel" hidden>
+        <div id="history-results" class="search-results" aria-live="polite"></div>
+      </div>
+    </div>
 
     <div id="results-toolbar" class="results-toolbar" hidden>
       <label for="sort-select" class="visually-hidden">Sort results by</label>
