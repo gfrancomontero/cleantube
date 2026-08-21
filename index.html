@@ -3,304 +3,102 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Watch purified YouTube videos without ads, comments, or distractions. Free web tool for teachers, students, and presenters. Just paste a link and focus on the content. Just focus." />
-  <meta name="google-site-verification" content="HggK7KBADvrDMO0csH7fA6nbskBG9TepblYhkGOiljE" />
+  <meta name="description" content="Watch YouTube videos without ads, comments, or distractions. Search or paste a link and just focus." />
 
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <title>purify video – watch purified YouTube videos with no ads</title>
-<!-- Open Graph -->
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://purify-video.github.io/" />
-<meta property="og:title" content="purify video – watch purified YouTube videos with no ads" />
-<meta property="og:description" content="Watch YouTube videos without ads, comments, or distractions. Free web tool for teachers, students, and presenters. Just paste a link and focus on the content." />
+  <title>CleanTube – watch YouTube videos with no ads</title>
 
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="purify video – watch purified YouTube videos with no ads" />
-<meta name="twitter:description" content="Watch YouTube videos without ads, comments, or distractions. Free web tool for teachers, students, and presenters. Just paste a link and focus on the content." />
-  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="CleanTube – watch YouTube videos with no ads" />
+  <meta property="og:description" content="Watch YouTube videos without ads, comments, or distractions. Search or paste a link and just focus." />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="CleanTube – watch YouTube videos with no ads" />
+  <meta name="twitter:description" content="Watch YouTube videos without ads, comments, or distractions. Search or paste a link and just focus." />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  
-  <!-- ✅ Google Font: Noto Sans. -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- ✅ Google Material Icons: Light Mode & Dark Mode. -->
+  <!-- ✅ Google Fonts: Playfair Display (masthead) + PT Serif (editorial body) + Inter (UI). No italics. -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=PT+Serif:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- ✅ Google Material Icons. -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap" rel="stylesheet" />
 
   <style>
     /* ===================
-       Colors palette.
+       Colors palette — editorial, NYT-inspired.
     ====================== */
     :root {
-      --bg-light: #f4f4f5;
-      --text-light: #1f1f1f;
-      --bg-dark: #1e1e20;
-      --text-dark: #dcdcdc;
-      --primary: #46aae9;
-      --input-bg: #ffffff;
-      --input-border: #ced4da;
-    }
-
-    /* ===================
-       Themes.
-    ====================== */
-    [data-theme="dark"] {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
+      --bg-light: #ffffff;
+      --bg-dark: #0a0a0a;
+      --text-light: #121212;
+      --text-dark: #e5e5e5;
+      --text-secondary-light: #5b6472;
+      --text-secondary-dark: #9a9a9a;
+      --hairline-light: #dcdcdc;
+      --hairline-dark: #2a2a2a;
+      --accent-light: #15803d;
+      --accent-dark: #86efac;
     }
 
     [data-theme="light"] {
-      background-color: var(--bg-light);
-      color: var(--text-light);
+      --bg: var(--bg-light);
+      --text: var(--text-light);
+      --text-secondary: var(--text-secondary-light);
+      --hairline: var(--hairline-light);
+      --accent: var(--accent-light);
     }
 
-      /* ===================
-       Dark mode-aware input styling:
-    ====================== */
-    [data-theme="dark"] #purify-form input[type="url"] {
-  background-color: #2a2a2c;
-  color: var(--text-dark);
-  border-color: #404040;
-}
+    [data-theme="dark"] {
+      --bg: var(--bg-dark);
+      --text: var(--text-dark);
+      --text-secondary: var(--text-secondary-dark);
+      --hairline: var(--hairline-dark);
+      --accent: var(--accent-dark);
+    }
 
-    /* ===================
-       Fonts.
-    ====================== */
     * {
       box-sizing: border-box;
-      font-family: 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
     }
 
     body {
-      margin: 0;
-      padding: 0;
-      transition: background-color 0.3s, color 0.3s;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
-
-    /* ===================
-       Layout.
-    ====================== */
-    header, footer, section {
-      max-width: 1200px;
-      margin: auto;
-      padding: 1rem;
-      text-align: center;
-    }
-
-    .iframe {
-      max-width: 100%;
-      aspect-ratio: 16 / 9;
-      padding: 1rem;
-      display: none;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    .visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-    /* ===================
-       Input and buttons.
-    ====================== */
-#purify-form {
-  display: flex;
-  gap: 0.5rem;
-  max-width: 560px;
-  margin: 1.5rem auto 0.5rem;
-  align-items: stretch;
-}
-
-#purify-form input[type="url"] {
-  flex: 1;
-  min-width: 0;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--input-border);
-  background-color: var(--input-bg);
-  color: var(--text-light);
-  min-height: 48px;
-}
-
-#purify-form input[type="url"]:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(70, 170, 233, 0.25);
-}
-
-#purify-form button {
-  margin: 0;
-  padding: 0.75rem 1.5rem;
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  min-height: 48px;
-  white-space: nowrap;
-  transition: background-color 0.15s ease;
-}
-
-#purify-form button:hover {
-  background-color: #3593cf;
-}
-
-#purify-form button:focus-visible {
-  outline: 3px solid rgba(70, 170, 233, 0.5);
-  outline-offset: 2px;
-}
-
-@media (max-width: 600px) {
-  #purify-form {
-    flex-direction: column;
-    max-width: 100%;
-  }
-  #purify-form button {
-    width: 100%;
-  }
-}
 
     a {
-      color: inherit;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
       text-decoration: underline;
     }
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      border-bottom: 1px solid #ccc;
-    }
-    .brand-heading {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  border-bottom: none;
-  margin-top: 40px;
-}
-
-.brand-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  background: linear-gradient(135deg, var(--primary), rgba(70, 170, 233, 0.5));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-.brand-mark svg {
-  display: block;
-  width: 22px;
-  height: 22px;
-  margin-left: 1px;
-}
-
-.brand-text-accent {
-  color: var(--primary);
-}
-
-    .official-domain-note {
-      font-size: 0.95rem;
-      opacity: 0.85;
-    }
-
-    .form-note {
-      font-size: 0.85rem;
-      opacity: 0.75;
-      margin-top: 0.75rem;
-    }
-
-  
-    /* ==========================
-       Toggle switch with icons.
-    ============================= */
-    .theme-toggle {
+    .visually-hidden {
       position: absolute;
-      top: 1rem;
-      right: 1rem;
-      display: flex;
-      align-items: center;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
-    .icon-label {
-      font-family: 'Material Symbols Outlined', Arial, sans-serif;
-      font-size: 24px;
-      margin: 0 0.5rem;
-      line-height: 1;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 48px;
-      height: 24px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      border-radius: 24px;
-      transition: 0.4s;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 2px;
-      bottom: 2px;
-      background-color: white;
-      border-radius: 50%;
-      transition: 0.4s;
-    }
-
-    input:checked + .slider {
-      background-color: #666;
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
-
-    /* Fallback icons. */
     .fallback-icon {
       display: none;
       font-size: 16px;
@@ -311,17 +109,449 @@
     }
 
     /* ===================
-       Donation box.
+       Theme toggle — single icon, no switch.
     ====================== */
-    .donation-box {
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      margin: 1rem 0;
-      border-radius: 0.5rem;
+    .theme-toggle-btn {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--hairline);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 50;
+      transition: border-color 0.15s ease;
     }
 
-    [data-theme="light"] .donation-box {
-      background-color: rgba(0, 0, 0, 0.05);
+    .theme-toggle-btn:hover {
+      border-color: var(--text);
+    }
+
+    .theme-toggle-btn .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    /* ===================
+       Page layout.
+    ====================== */
+    .page {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+    }
+
+    .masthead {
+      max-width: 640px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 0 0.5rem;
+    }
+
+    .kicker {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.25em;
+      color: var(--text-secondary);
+      margin-top: 3.5rem;
+    }
+
+    .wordmark {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 800;
+      font-size: clamp(2.75rem, 8vw, 4.5rem);
+      letter-spacing: -0.01em;
+      line-height: 1.05;
+      margin: 0.6rem 0 1.5rem;
+      color: var(--text);
+    }
+
+    .wordmark .accent {
+      color: var(--accent);
+    }
+
+    .hairline {
+      border: none;
+      border-top: 1px solid var(--hairline);
+      width: 100%;
+      max-width: 220px;
+      margin: 0 auto 1.5rem;
+    }
+
+    .deck {
+      font-family: 'PT Serif', Georgia, serif;
+      font-size: 1.15rem;
+      line-height: 1.5;
+      color: var(--text);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ===================
+       Search / paste fields.
+    ====================== */
+    .field-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.6rem;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    #search-form {
+      margin-top: 2.25rem;
+    }
+
+    #purify-form {
+      margin-top: 0.85rem;
+      opacity: 0.85;
+    }
+
+    .field-input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      border-bottom: 1.5px solid var(--text);
+      background: transparent;
+      font-family: 'PT Serif', Georgia, serif;
+      font-size: 1.15rem;
+      padding: 0.5rem 0.1rem;
+      color: var(--text);
+      border-radius: 0;
+    }
+
+    .field-input--small {
+      font-size: 0.95rem;
+      border-bottom-width: 1px;
+    }
+
+    .field-input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.8;
+    }
+
+    .field-input:focus {
+      outline: none;
+      border-bottom-color: var(--accent);
+    }
+
+    .icon-btn {
+      flex: 0 0 auto;
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--text);
+      background: transparent;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background-color: var(--text);
+      color: var(--bg);
+    }
+
+    .icon-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .text-btn {
+      flex: 0 0 auto;
+      border: none;
+      background: none;
+      color: var(--accent);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      padding: 0 0.3rem 0.5rem;
+    }
+
+    .text-btn:hover {
+      text-decoration: underline;
+    }
+
+    /* ===================
+       Results toolbar (sort).
+    ====================== */
+    .results-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 2.5rem;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .results-toolbar[hidden] {
+      display: none;
+    }
+
+    .results-toolbar select {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--hairline);
+      padding: 0.35rem 0.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .results-toolbar {
+        margin-right: 2.75rem;
+      }
+    }
+
+    /* ===================
+       Search results — full page width.
+    ====================== */
+    .search-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 2.25rem 1.75rem;
+      margin-top: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .search-result {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      font-family: inherit;
+    }
+
+    .search-result-thumb {
+      position: relative;
+    }
+
+    .search-result img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background-color: #000;
+      display: block;
+    }
+
+    .search-result-duration {
+      position: absolute;
+      left: 6px;
+      bottom: 6px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1.4;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .search-result-title {
+      font-family: 'PT Serif', Georgia, serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--text);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .search-result:hover .search-result-title {
+      text-decoration: underline;
+    }
+
+    .search-result-channel {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+
+    .search-result-meta {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    .search-status {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 1rem 0;
+    }
+
+    @media (max-width: 480px) {
+      .field-row {
+        gap: 0.4rem;
+      }
+    }
+
+    /* ===================
+       Footer.
+    ====================== */
+    .page-footer {
+      margin-top: 4.5rem;
+      text-align: center;
+    }
+
+    .footer-credit {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .footer-credit a {
+      color: var(--text-secondary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .footer-credit a:hover {
+      color: var(--accent);
+    }
+
+    /* ===================
+       Video modal (full + minimized/draggable PiP).
+    ====================== */
+    .video-modal[hidden] {
+      display: none;
+    }
+
+    .video-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .video-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    .video-modal.minimized {
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 0;
+      pointer-events: none;
+    }
+
+    .video-modal.minimized .video-modal-backdrop {
+      display: none;
+    }
+
+    .video-modal-panel {
+      position: relative;
+      z-index: 1;
+      width: min(880px, 100%);
+      background: var(--bg);
+      border: 1px solid var(--hairline);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+    }
+
+    .video-modal.minimized .video-modal-panel {
+      position: fixed;
+      width: min(300px, calc(100vw - 32px));
+      right: 16px;
+      bottom: 16px;
+      touch-action: none;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      cursor: grab;
+    }
+
+    .video-modal-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.55rem 0.8rem;
+      border-bottom: 1px solid var(--hairline);
+      background: var(--bg);
+    }
+
+    .video-modal-title {
+      font-family: 'PT Serif', Georgia, serif;
+      font-size: 0.85rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .video-modal-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex: 0 0 auto;
+    }
+
+    .video-modal-actions button {
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--hairline);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-modal-actions button:hover {
+      border-color: var(--text);
+    }
+
+    .video-modal-actions .material-symbols-outlined {
+      font-size: 16px;
+    }
+
+    .video-modal-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+
+    .video-modal-frame iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .video-modal-catcher {
+      position: absolute;
+      inset: 0;
+      display: none;
+    }
+
+    .video-modal.minimized .video-modal-catcher {
+      display: block;
     }
   </style>
 
@@ -329,36 +559,52 @@
     /**
      * Constants.
      */
-    const PURIFY_OFFICIAL_DOMAIN = 'https://purify.video/';
     const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
     const PLAYLIST_ID_RE = /^[A-Za-z0-9_-]{13,42}$/;
     const MAX_START_SECONDS = 86400;
+    const PROGRESS_KEY_PREFIX = 'cleantube:progress:';
+    const PROGRESS_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+    const PROGRESS_SAVE_INTERVAL_MS = 5000;
 
     /**
-     * Set theme based on system.
+     * Theme: single icon that reflects (and toggles) the active theme.
      */
-    function setThemeFromPreference() {
-      const saved = localStorage.getItem("theme");
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const theme = saved || (prefersDark ? "dark" : "light");
+    function updateThemeIcon(theme) {
+      const iconEl = document.getElementById('theme-icon');
+      const fallbackEl = document.getElementById('theme-icon-fallback');
+      if (!iconEl || !fallbackEl) return;
 
-      document.documentElement.setAttribute("data-theme", theme);
-
-      const themeCheckbox = document.getElementById("theme-checkbox");
-      if (themeCheckbox) {
-        themeCheckbox.checked = theme === "dark";
+      if (theme === 'dark') {
+        iconEl.textContent = 'dark_mode';
+        fallbackEl.textContent = '🌙';
+      } else {
+        iconEl.textContent = 'light_mode';
+        fallbackEl.textContent = '☀️';
       }
     }
 
-    /**
-     * Change the theme and save on localStorage.
-     */
-    function toggleTheme() {
-      const isDark = document.getElementById("theme-checkbox").checked;
-      const newTheme = isDark ? "dark" : "light";
+    function setThemeFromPreference() {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
 
-      document.documentElement.setAttribute("data-theme", newTheme);
-      localStorage.setItem("theme", newTheme);
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeIcon(theme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeIcon(next);
+    }
+
+    function setupThemeToggleButton() {
+      const btn = document.getElementById('theme-toggle-btn');
+      if (!btn) return;
+      btn.addEventListener('click', toggleTheme);
     }
 
     /**
@@ -547,56 +793,6 @@
         return (out.videoId || out.playlistId) ? out : null;
       }
 
-      /**
-       * Legacy Purify format:
-       * https://purify-video.github.io/?v=ENCODED_YOUTUBE_URL
-       *
-       * This is used for parsing only.
-       * It does NOT redirect on page load.
-       */
-      const vParam = params.get('v');
-
-      if (vParam) {
-        try {
-          const decoded = decodeURIComponent(vParam);
-          const rec = parseInput(decoded);
-
-          if (rec) {
-            if (!rec.playlistId) {
-              const outerList = params.get('list');
-              if (outerList && PLAYLIST_ID_RE.test(outerList)) {
-                rec.playlistId = outerList;
-              }
-            }
-
-            if (!rec.startSeconds && rec.videoId) {
-              const outerStart = extractStartFromUrl(url);
-              if (outerStart) {
-                rec.startSeconds = outerStart;
-              }
-            }
-
-            return rec;
-          }
-
-          if (VIDEO_ID_RE.test(decoded)) {
-            const out = { videoId: decoded };
-
-            const list = params.get('list');
-            if (list && PLAYLIST_ID_RE.test(list)) {
-              out.playlistId = list;
-            }
-
-            const start = extractStartFromUrl(url);
-            if (start) {
-              out.startSeconds = start;
-            }
-
-            return out;
-          }
-        } catch (_) {}
-      }
-
       const listOnly = params.get('list');
       if (listOnly && PLAYLIST_ID_RE.test(listOnly)) {
         return { playlistId: listOnly };
@@ -606,82 +802,265 @@
     }
 
     /**
-     * Build official purify.video equivalent.
-     * Used only when the user manually submits the form.
+     * Query the /api/search serverless function (which holds the YouTube
+     * Data API key server-side via the YOUTUBE_API_KEY env var) for videos
+     * matching a search term. Returns an array of
+     * { videoId, title, channelTitle, thumbnailUrl, publishedAt, viewCount }.
      */
-    function buildOfficialPurifyUrl(parsed) {
-      if (!parsed) return null;
+    async function searchYouTubeVideos(query) {
+      const response = await fetch('/api/search?q=' + encodeURIComponent(query));
+      const data = await response.json().catch(function () { return null; });
 
-      const params = new URLSearchParams();
-
-      if (parsed.videoId) {
-        params.set('v', parsed.videoId);
+      if (!response.ok) {
+        const reason = data && data.error ? data.error : response.statusText;
+        throw new Error(reason || 'YouTube search failed.');
       }
 
-      if (parsed.playlistId) {
-        params.set('list', parsed.playlistId);
-      }
-
-      if (parsed.videoId && parsed.startSeconds && parsed.startSeconds > 0) {
-        params.set('t', String(parsed.startSeconds));
-      }
-
-      const query = params.toString();
-
-      return query ? PURIFY_OFFICIAL_DOMAIN.replace(/\/$/, '') + '/watch?' + query : null;
+      return (data && Array.isArray(data.results)) ? data.results : [];
     }
 
     /**
-     * Build local YouTube embed URL.
-     * Used on page load so old GitHub links keep working without redirecting.
+     * Formatting helpers for search result metadata.
      */
-    function buildEmbedUrl(parsed) {
-      if (!parsed) return null;
+    function formatViewCount(count) {
+      if (count == null || isNaN(count)) return '';
 
-      const params = new URLSearchParams();
+      if (count >= 1e9) return (count / 1e9).toFixed(1).replace(/\.0$/, '') + 'B views';
+      if (count >= 1e6) return (count / 1e6).toFixed(1).replace(/\.0$/, '') + 'M views';
+      if (count >= 1e3) return (count / 1e3).toFixed(1).replace(/\.0$/, '') + 'K views';
 
-      if (parsed.videoId && parsed.startSeconds && parsed.startSeconds > 0) {
-        params.set('start', String(parsed.startSeconds));
+      return count + ' views';
+    }
+
+    function formatDuration(iso) {
+      if (!iso) return '';
+
+      const match = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+      if (!match) return '';
+
+      const hours = parseInt(match[1] || '0', 10);
+      const minutes = parseInt(match[2] || '0', 10);
+      const seconds = parseInt(match[3] || '0', 10);
+
+      if (!hours && !minutes && !seconds) return '';
+
+      const paddedSeconds = String(seconds).padStart(2, '0');
+
+      if (hours) {
+        return hours + ':' + String(minutes).padStart(2, '0') + ':' + paddedSeconds;
       }
 
-      if (parsed.videoId && parsed.playlistId) {
-        params.set('list', parsed.playlistId);
-        return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(parsed.videoId) + '?' + params.toString();
-      }
+      return minutes + ':' + paddedSeconds;
+    }
 
-      if (parsed.videoId) {
-        return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(parsed.videoId) + '?' + params.toString();
-      }
+    function formatRelativeDate(iso) {
+      if (!iso) return '';
 
-      if (parsed.playlistId) {
-        params.set('listType', 'playlist');
-        params.set('list', parsed.playlistId);
-        return 'https://www.youtube-nocookie.com/embed/videoseries?' + params.toString();
-      }
+      const date = new Date(iso);
+      if (isNaN(date.getTime())) return '';
 
-      return null;
+      const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 1) return 'today';
+      if (diffDays === 1) return '1 day ago';
+      if (diffDays < 30) return diffDays + ' days ago';
+
+      const diffMonths = Math.floor(diffDays / 30);
+      if (diffMonths < 12) return diffMonths + (diffMonths === 1 ? ' month ago' : ' months ago');
+
+      const diffYears = Math.floor(diffMonths / 12);
+      return diffYears + (diffYears === 1 ? ' year ago' : ' years ago');
     }
 
     /**
-     * Start local video player on purify-video.github.io.
+     * Sorting for the results grid. 'relevance' keeps the API's own order.
      */
-    function purifyLocal(parsed) {
-      const embedUrl = buildEmbedUrl(parsed);
-      if (!embedUrl) return;
+    let currentResults = [];
 
-      const iframeWrapper = document.querySelector('.iframe');
-      const iframe = document.querySelector('iframe');
+    function sortResults(results, sortBy) {
+      const copy = results.slice();
 
-      if (!iframeWrapper || !iframe) return;
+      if (sortBy === 'views') {
+        copy.sort(function (a, b) { return (b.viewCount || 0) - (a.viewCount || 0); });
+      } else if (sortBy === 'newest') {
+        copy.sort(function (a, b) { return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0); });
+      } else if (sortBy === 'oldest') {
+        copy.sort(function (a, b) { return new Date(a.publishedAt || 0) - new Date(b.publishedAt || 0); });
+      }
 
-      iframeWrapper.style.display = 'block';
-      iframe.setAttribute('src', embedUrl);
+      return copy;
+    }
+
+    function setupSortControl() {
+      const select = document.getElementById('sort-select');
+      if (!select) return;
+
+      select.addEventListener('change', function () {
+        renderSearchResults(sortResults(currentResults, select.value));
+      });
     }
 
     /**
-     * Redirect to official purify.video only after manual form submit.
+     * Replace the search results grid with a single status line (or clear it).
      */
-    function setupFormRedirect() {
+    function setSearchStatus(message) {
+      const grid = document.getElementById('search-results');
+      if (!grid) return;
+
+      grid.innerHTML = '';
+      if (!message) return;
+
+      const status = document.createElement('p');
+      status.className = 'search-status';
+      status.textContent = message;
+      grid.appendChild(status);
+    }
+
+    function setToolbarVisible(visible) {
+      const toolbar = document.getElementById('results-toolbar');
+      if (!toolbar) return;
+      toolbar.hidden = !visible;
+    }
+
+    /**
+     * Render search results as clickable video cards.
+     */
+    function renderSearchResults(results) {
+      const grid = document.getElementById('search-results');
+      if (!grid) return;
+
+      grid.innerHTML = '';
+
+      if (!results.length) {
+        setSearchStatus('No videos found.');
+        return;
+      }
+
+      results.forEach(function (result) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'search-result';
+        card.setAttribute('aria-label', 'Watch: ' + result.title);
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'search-result-thumb';
+
+        const thumb = document.createElement('img');
+        thumb.src = result.thumbnailUrl;
+        thumb.alt = '';
+        thumb.loading = 'lazy';
+        thumbWrap.appendChild(thumb);
+
+        const durationText = formatDuration(result.duration);
+        if (durationText) {
+          const durationPill = document.createElement('span');
+          durationPill.className = 'search-result-duration';
+          durationPill.textContent = durationText;
+          thumbWrap.appendChild(durationPill);
+        }
+
+        card.appendChild(thumbWrap);
+
+        const title = document.createElement('span');
+        title.className = 'search-result-title';
+        title.textContent = result.title;
+        card.appendChild(title);
+
+        const channel = document.createElement('span');
+        channel.className = 'search-result-channel';
+        channel.textContent = result.channelTitle;
+        card.appendChild(channel);
+
+        const metaParts = [];
+        if (result.viewCount != null) metaParts.push(formatViewCount(result.viewCount));
+        if (result.publishedAt) metaParts.push(formatRelativeDate(result.publishedAt));
+
+        if (metaParts.length) {
+          const meta = document.createElement('span');
+          meta.className = 'search-result-meta';
+          meta.textContent = metaParts.join(' · ');
+          card.appendChild(meta);
+        }
+
+        card.addEventListener('click', function () {
+          openVideoModal({ videoId: result.videoId }, result.title);
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    /**
+     * Run a search and render the results. Guards against out-of-order
+     * responses (e.g. a fast-typed later query resolving before an earlier
+     * one) by only applying the response that matches the latest request.
+     */
+    let searchRequestId = 0;
+
+    async function runSearch(query) {
+      if (!query) return;
+
+      const requestId = ++searchRequestId;
+
+      setToolbarVisible(false);
+      setSearchStatus('Searching…');
+
+      try {
+        const results = await searchYouTubeVideos(query);
+        if (requestId !== searchRequestId) return;
+
+        currentResults = results;
+        const select = document.getElementById('sort-select');
+        renderSearchResults(sortResults(currentResults, select ? select.value : 'relevance'));
+        setToolbarVisible(currentResults.length > 0);
+      } catch (err) {
+        if (requestId !== searchRequestId) return;
+        setSearchStatus('Search failed: ' + err.message);
+      }
+    }
+
+    /**
+     * Wire up the search form: search on submit, and search-as-you-type
+     * with a 1500ms debounce so we're not firing a request per keystroke.
+     */
+    const SEARCH_DEBOUNCE_MS = 1500;
+    let searchDebounceTimer = null;
+
+    function setupSearchForm() {
+      const form = document.getElementById('search-form');
+      const input = document.getElementById('search-input');
+
+      if (!form || !input) return;
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        runSearch(input.value.trim());
+      });
+
+      input.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+
+        const query = input.value.trim();
+
+        if (!query) {
+          searchRequestId++; // invalidate any in-flight request
+          currentResults = [];
+          setToolbarVisible(false);
+          setSearchStatus('');
+          return;
+        }
+
+        searchDebounceTimer = setTimeout(function () {
+          runSearch(query);
+        }, SEARCH_DEBOUNCE_MS);
+      });
+    }
+
+    /**
+     * Handle the "paste a link" form: parse it and play it in the modal.
+     */
+    function setupPurifyForm() {
       const form = document.getElementById('purify-form');
       const input = document.getElementById('youtube-input');
 
@@ -691,27 +1070,323 @@
         event.preventDefault();
 
         const parsed = parseInput(input.value);
-        const redirectUrl = buildOfficialPurifyUrl(parsed);
 
-        if (!redirectUrl) {
+        if (!parsed) {
           alert('Please enter a valid YouTube video or playlist URL.');
           return;
         }
 
-        window.location.href = redirectUrl;
+        openVideoModal(parsed, null);
       });
     }
 
     /**
-     * Autostart on onload event.
+     * Best-effort lock-screen metadata via the Media Session API.
      *
-     * Important:
-     * This does NOT redirect to purify.video on load.
-     * Old GitHub links continue to work locally.
+     * Note: this cannot make YouTube's embedded player keep playing audio
+     * once mobile Safari is backgrounded — that player lives in a
+     * cross-origin iframe we don't control, and iOS suspends background
+     * tabs' media outside of a handful of first-party cases. This just adds
+     * the metadata hook for the cases where the browser does surface it.
+     */
+    function updateMediaSession(title) {
+      if (!('mediaSession' in navigator)) return;
+
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: title || 'CleanTube',
+          artist: 'CleanTube',
+        });
+      } catch (_) {}
+    }
+
+    /**
+     * Resume-playback persistence (per video, in localStorage).
+     */
+    function getSavedProgress(videoId) {
+      try {
+        const raw = localStorage.getItem(PROGRESS_KEY_PREFIX + videoId);
+        if (!raw) return 0;
+
+        const data = JSON.parse(raw);
+        if (!data || typeof data.seconds !== 'number') return 0;
+        if (Date.now() - (data.savedAt || 0) > PROGRESS_MAX_AGE_MS) return 0;
+
+        // Don't "resume" from right near the end — just start over.
+        return data.seconds > 5 ? Math.floor(data.seconds) : 0;
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    function saveProgress(videoId, seconds) {
+      if (!videoId || !isFinite(seconds) || seconds < 0) return;
+
+      try {
+        localStorage.setItem(
+          PROGRESS_KEY_PREFIX + videoId,
+          JSON.stringify({ seconds: seconds, savedAt: Date.now() })
+        );
+      } catch (_) {}
+    }
+
+    function clearProgress(videoId) {
+      try { localStorage.removeItem(PROGRESS_KEY_PREFIX + videoId); } catch (_) {}
+    }
+
+    function saveCurrentProgress() {
+      if (!ytPlayer || !currentVideoId || typeof ytPlayer.getCurrentTime !== 'function') return;
+
+      try {
+        saveProgress(currentVideoId, ytPlayer.getCurrentTime());
+      } catch (_) {}
+    }
+
+    let progressTimerId = null;
+
+    function startProgressTimer() {
+      if (progressTimerId) return;
+      progressTimerId = setInterval(saveCurrentProgress, PROGRESS_SAVE_INTERVAL_MS);
+    }
+
+    function stopProgressTimer() {
+      if (!progressTimerId) return;
+      clearInterval(progressTimerId);
+      progressTimerId = null;
+    }
+
+    /**
+     * YouTube IFrame Player API — loaded lazily on first video open, then
+     * reused for every subsequent video so the same iframe keeps playing
+     * across minimize/restore.
+     */
+    let ytPlayer = null;
+    let ytPlayerReady = false;
+    let pendingLoad = null;
+    let currentVideoId = null;
+
+    function loadYouTubeIframeApi() {
+      if (window.YT && window.YT.Player) {
+        initYtPlayer();
+        return;
+      }
+
+      if (document.getElementById('youtube-iframe-api')) return;
+
+      window.onYouTubeIframeAPIReady = initYtPlayer;
+
+      const script = document.createElement('script');
+      script.id = 'youtube-iframe-api';
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    }
+
+    function initYtPlayer() {
+      ytPlayer = new YT.Player('player-target', {
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: { playsinline: 1, rel: 0 },
+        events: {
+          onReady: function () {
+            ytPlayerReady = true;
+            if (pendingLoad) {
+              applyLoad(pendingLoad.parsed, pendingLoad.title);
+              pendingLoad = null;
+            }
+          },
+          onStateChange: handlePlayerStateChange,
+        },
+      });
+    }
+
+    function handlePlayerStateChange(event) {
+      if (event.data === 1) {
+        // playing
+        startProgressTimer();
+      } else {
+        stopProgressTimer();
+        saveCurrentProgress();
+      }
+
+      if (event.data === 0 && currentVideoId) {
+        // ended
+        clearProgress(currentVideoId);
+      }
+    }
+
+    function applyLoad(parsed, title) {
+      currentVideoId = parsed.videoId || null;
+
+      if (parsed.playlistId) {
+        ytPlayer.loadPlaylist({ list: parsed.playlistId, listType: 'playlist' });
+        return;
+      }
+
+      if (parsed.videoId) {
+        const resumeSeconds = getSavedProgress(parsed.videoId);
+        const startSeconds = (parsed.startSeconds && parsed.startSeconds > 0) ? parsed.startSeconds : resumeSeconds;
+        ytPlayer.loadVideoById({ videoId: parsed.videoId, startSeconds: startSeconds });
+      }
+    }
+
+    function loadIntoPlayer(parsed, title) {
+      if (!ytPlayerReady || !ytPlayer) {
+        pendingLoad = { parsed: parsed, title: title };
+        loadYouTubeIframeApi();
+        return;
+      }
+
+      applyLoad(parsed, title);
+    }
+
+    /**
+     * Video modal: open (full), minimize (draggable PiP), restore, close.
+     */
+    function openVideoModal(parsed, title) {
+      if (!parsed || (!parsed.videoId && !parsed.playlistId)) return;
+
+      const modal = document.getElementById('video-modal');
+      const titleEl = document.getElementById('video-modal-title');
+      if (!modal) return;
+
+      if (titleEl) {
+        titleEl.textContent = title || '';
+      }
+
+      restoreVideoModal();
+      modal.hidden = false;
+
+      loadIntoPlayer(parsed, title);
+      updateMediaSession(title);
+    }
+
+    function closeVideoModal() {
+      saveCurrentProgress();
+      stopProgressTimer();
+
+      if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+        try { ytPlayer.stopVideo(); } catch (_) {}
+      }
+
+      const modal = document.getElementById('video-modal');
+      if (modal) modal.hidden = true;
+
+      restoreVideoModal();
+      currentVideoId = null;
+    }
+
+    function minimizeVideoModal() {
+      const modal = document.getElementById('video-modal');
+      if (!modal) return;
+      modal.classList.add('minimized');
+    }
+
+    function restoreVideoModal() {
+      const modal = document.getElementById('video-modal');
+      const panel = document.getElementById('video-modal-panel');
+      if (!modal || !panel) return;
+
+      modal.classList.remove('minimized');
+      panel.style.left = '';
+      panel.style.top = '';
+      panel.style.right = '';
+      panel.style.bottom = '';
+    }
+
+    function setupVideoModalControls() {
+      const minimizeBtn = document.getElementById('video-minimize-btn');
+      const closeBtn = document.getElementById('video-close-btn');
+      const backdrop = document.querySelector('.video-modal-backdrop');
+
+      if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', minimizeVideoModal);
+      }
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeVideoModal);
+      }
+
+      if (backdrop) {
+        backdrop.addEventListener('click', closeVideoModal);
+      }
+    }
+
+    /**
+     * Dragging the minimized preview around the screen. Clicking it
+     * (without dragging) restores the full modal. Action buttons are
+     * excluded so they keep working normally.
+     */
+    function setupVideoModalDrag() {
+      const panel = document.getElementById('video-modal-panel');
+      const modal = document.getElementById('video-modal');
+      if (!panel || !modal) return;
+
+      let dragging = false;
+      let moved = false;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      panel.addEventListener('pointerdown', function (event) {
+        if (!modal.classList.contains('minimized')) return;
+        if (event.target.closest('.video-modal-actions')) return;
+
+        dragging = true;
+        moved = false;
+        const rect = panel.getBoundingClientRect();
+        offsetX = event.clientX - rect.left;
+        offsetY = event.clientY - rect.top;
+
+        try { panel.setPointerCapture(event.pointerId); } catch (_) {}
+      });
+
+      panel.addEventListener('pointermove', function (event) {
+        if (!dragging) return;
+        moved = true;
+
+        const width = panel.offsetWidth;
+        const height = panel.offsetHeight;
+        let x = event.clientX - offsetX;
+        let y = event.clientY - offsetY;
+
+        x = Math.max(0, Math.min(window.innerWidth - width, x));
+        y = Math.max(0, Math.min(window.innerHeight - height, y));
+
+        panel.style.left = x + 'px';
+        panel.style.top = y + 'px';
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+      });
+
+      panel.addEventListener('pointerup', function (event) {
+        if (!dragging) return;
+        dragging = false;
+
+        if (!moved && event.target.closest('.video-modal-actions') == null) {
+          restoreVideoModal();
+        }
+      });
+
+      panel.addEventListener('pointercancel', function () {
+        dragging = false;
+      });
+    }
+
+    /**
+     * Autostart on onload event: supports old ?v= links from the
+     * previous purify-video.github.io site.
      */
     function init() {
       setThemeFromPreference();
-      setupFormRedirect();
+      setupThemeToggleButton();
+      setupSearchForm();
+      setupPurifyForm();
+      setupSortControl();
+      setupVideoModalControls();
+      setupVideoModalDrag();
+
+      window.addEventListener('beforeunload', saveCurrentProgress);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') saveCurrentProgress();
+      });
 
       const input = document.getElementById('youtube-input');
       const params = new URLSearchParams(window.location.search.substring(1));
@@ -726,7 +1401,7 @@
         const parsed = parseInput(originalValue);
 
         if (parsed) {
-          purifyLocal(parsed);
+          openVideoModal(parsed, null);
         }
       }
     }
@@ -736,80 +1411,79 @@
 </head>
 
 <body>
-  <!-- 🌗 Toggle Switch for Dark/Light mode with fallback icons. -->
-  <div class="theme-toggle">
-    <span class="icon-label">
-      <span class="material-symbols-outlined">light_mode</span>
-      <span class="fallback-icon">☀️</span>
-    </span>
-    <label class="switch">
-      <input type="checkbox" id="theme-checkbox" onchange="toggleTheme()" aria-label="Toggle dark mode" />
-      <span class="slider"></span>
-    </label>
-    <span class="icon-label">
-      <span class="material-symbols-outlined">dark_mode</span>
-      <span class="fallback-icon">🌙</span>
-    </span>
+  <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle dark mode">
+    <span class="material-symbols-outlined" id="theme-icon" aria-hidden="true">light_mode</span>
+    <span class="fallback-icon" id="theme-icon-fallback" aria-hidden="true">☀️</span>
+  </button>
+
+  <div class="page">
+    <header class="masthead">
+      <span class="kicker">Ad-free YouTube</span>
+      <h1 class="wordmark">Clean<span class="accent">Tube</span></h1>
+      <hr class="hairline" />
+      <p class="deck">Watch YouTube videos with no ads, no comments, no distractions.</p>
+
+      <form id="search-form" class="field-row" role="search">
+        <label for="search-input" class="visually-hidden">Search YouTube videos</label>
+        <input id="search-input" type="text" class="field-input" placeholder="Search YouTube…" autocomplete="off" />
+        <button type="submit" class="icon-btn" aria-label="Search YouTube">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          <span class="fallback-icon" aria-hidden="true">🔍</span>
+        </button>
+      </form>
+
+      <form id="purify-form" class="field-row">
+        <label for="youtube-input" class="visually-hidden">YouTube video or playlist URL</label>
+        <input id="youtube-input" type="url" name="v" class="field-input field-input--small" placeholder="…or paste a YouTube link" />
+        <button type="submit" class="text-btn">Watch</button>
+      </form>
+    </header>
+
+    <div id="results-toolbar" class="results-toolbar" hidden>
+      <label for="sort-select" class="visually-hidden">Sort results by</label>
+      <select id="sort-select">
+        <option value="relevance">Relevance</option>
+        <option value="views">Views</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+      </select>
+    </div>
+
+    <div id="search-results" class="search-results" aria-live="polite"></div>
+
+    <footer class="page-footer">
+      <hr class="hairline" />
+      <p class="footer-credit"><a href="https://gonzalofranco.com" target="_blank" rel="noopener">gonzalofranco.com</a></p>
+    </footer>
   </div>
 
-  <header>
-  <h1 class="brand-heading">
-  <span class="brand-mark" aria-hidden="true">
-    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 7l9 5-9 5z" fill="#fff"/></svg>
-  </span>
-  <span class="brand-text">purify.<span class="brand-text-accent">video</span></span>
-</h1>
-    <h2>Watch purified YouTube videos with no ads. Just focus</h2>
-
-    <p class="official-domain-note">
-      Official domain: <a href="https://purify.video/" rel="noopener">purify.video</a>
-    </p>
-
-  <form id="purify-form">
-  <label for="youtube-input" class="visually-hidden">YouTube video or playlist URL</label>
-  <input id="youtube-input" type="url" name="v" placeholder="Paste a YouTube video or playlist URL" />
-  <button type="submit">Purify</button>
-</form>
-
-    <p class="form-note">
-    </p>
-  </header>
-
-  <section class="iframe">
-    <iframe
-      credentialless
-      frameborder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen *; web-share *"
-      sandbox="allow-scripts allow-same-origin allow-presentation"
-      src="">
-    </iframe>
-  </section>
-
-  <section>
-    <h2>Are you looking for a way to enhance your YouTube viewing experience?</h2>
-    <p>This app offers a clean and minimalistic interface for a distraction-free experience.</p>
-    <p>Teachers, students, parents, and organizers can use our app to remove ads, comments, and distracting sidebar videos.</p>
-    <p>Ensure your viewers see only the content you want them to see—nothing more, nothing less.</p>
-  </section>
-
-  <footer>
-    <p>YouTube is the source of all content</p>
-
-   <p>
-  Purify Video is maintained by
-  <a href="https://skipvids.com/" target="_blank" rel="noopener">SkipVids</a>.
-</p>
-
-    <p>This website <strong>does not store</strong> any data such as cookies to enable essential site functionality.</p>
-  </footer>
+  <div id="video-modal" class="video-modal" hidden>
+    <div class="video-modal-backdrop"></div>
+    <div class="video-modal-panel" id="video-modal-panel">
+      <div class="video-modal-bar" id="video-modal-bar">
+        <span class="video-modal-title" id="video-modal-title"></span>
+        <div class="video-modal-actions">
+          <button type="button" id="video-minimize-btn" aria-label="Minimize">
+            <span class="material-symbols-outlined" aria-hidden="true">remove</span>
+          </button>
+          <button type="button" id="video-close-btn" aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="video-modal-frame">
+        <div id="player-target"></div>
+        <div class="video-modal-catcher" id="video-modal-catcher"></div>
+      </div>
+    </div>
+  </div>
 
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Purify Video",
-  "url": "https://purify-video.github.io/",
-  "description": "Watch YouTube videos without ads, comments, or distractions. Free web tool for teachers, students, and presenters.",
+  "name": "CleanTube",
+  "description": "Watch YouTube videos without ads, comments, or distractions. Search or paste a link and just focus.",
   "applicationCategory": "MultimediaApplication",
   "operatingSystem": "Any",
   "browserRequirements": "Requires a modern web browser",
@@ -820,22 +1494,5 @@
   }
 }
 </script>
-  <!-- Default Statcounter code for Purify Video
-  https://purify-video.github.io -->
-  <script type="text/javascript">
-  var sc_project=13237369;
-  var sc_invisible=1;
-  var sc_security="0465583a";
-  </script>
-  <script type="text/javascript"
-  src="https://www.statcounter.com/counter/counter.js"
-  async></script>
-  <noscript><div class="statcounter"><a title="Web Analytics"
-  href="https://statcounter.com/" target="_blank"><img
-  class="statcounter"
-  src="https://c.statcounter.com/13237369/0/0465583a/1/"
-  alt="Web Analytics"
-  referrerPolicy="no-referrer-when-downgrade"></a></div></noscript>
-  <!-- End of Statcounter Code -->
 </body>
 </html>
