@@ -461,33 +461,21 @@
       padding: 1rem 0;
     }
 
-    .load-more-btn {
-      display: block;
-      margin: 0.5rem auto 2rem;
-      padding: 0.7rem 1.75rem;
-      border: 1px solid var(--hairline);
-      background: transparent;
-      color: var(--text);
+    /* Invisible trigger the IntersectionObserver watches — sits under the
+       grid and fires "load more" automatically as it scrolls near view. */
+    .load-more-sentinel {
+      height: 1px;
+    }
+
+    .load-more-status {
+      text-align: center;
       font-family: 'Inter', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      padding: 0.5rem 0 2rem;
     }
 
-    .load-more-btn:hover:not(:disabled) {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .load-more-btn:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-
-    .load-more-btn[hidden] {
+    .load-more-status[hidden] {
       display: none;
     }
 
@@ -1105,23 +1093,6 @@
     }
 
     /**
-     * Generic "load more" button state: hidden when there's nothing more
-     * to fetch, idle/clickable when there is, disabled+relabeled mid-fetch.
-     */
-    function setLoadMoreState(button, state) {
-      if (!button) return;
-
-      if (state === 'hidden') {
-        button.hidden = true;
-        return;
-      }
-
-      button.hidden = false;
-      button.disabled = state === 'loading';
-      button.textContent = state === 'loading' ? 'Loading…' : 'Load more';
-    }
-
-    /**
      * Run a search and render the results. Guards against out-of-order
      * responses (e.g. a fast-typed later query resolving before an earlier
      * one) by only applying the response that matches the latest request.
@@ -1140,7 +1111,6 @@
       setSuggestedSectionVisible(false);
       setToolbarVisible(false);
       setSearchStatus('Searching…');
-      setLoadMoreState(document.getElementById('search-load-more-btn'), 'hidden');
 
       try {
         const data = await searchYouTubeVideos(query);
@@ -1152,7 +1122,6 @@
         const select = document.getElementById('sort-select');
         renderSearchResults(sortResults(currentResults, select ? select.value : 'relevance'));
         setToolbarVisible(currentResults.length > 0);
-        setLoadMoreState(document.getElementById('search-load-more-btn'), searchPageToken ? 'idle' : 'hidden');
       } catch (err) {
         if (requestId !== searchRequestId) return;
         setSearchStatus('Search failed: ' + err.message);
@@ -1161,13 +1130,12 @@
 
     /**
      * Fetch the next page of the currently active search and append it.
+     * Triggered by the infinite-scroll sentinel, not a click.
      */
     async function loadMoreSearchResults() {
       if (!searchPageToken || !searchActiveQuery) return;
 
       const requestId = searchRequestId;
-      const btn = document.getElementById('search-load-more-btn');
-      setLoadMoreState(btn, 'loading');
 
       try {
         const data = await searchYouTubeVideos(searchActiveQuery, searchPageToken);
@@ -1178,9 +1146,8 @@
 
         const select = document.getElementById('sort-select');
         renderSearchResults(sortResults(currentResults, select ? select.value : 'relevance'));
-        setLoadMoreState(btn, searchPageToken ? 'idle' : 'hidden');
       } catch (err) {
-        setLoadMoreState(btn, 'idle'); // let them retry
+        // Leave searchPageToken as-is so the next scroll near the bottom retries.
       }
     }
 
@@ -1215,7 +1182,6 @@
           searchPageToken = null;
           setToolbarVisible(false);
           setSearchStatus('');
-          setLoadMoreState(document.getElementById('search-load-more-btn'), 'hidden');
           setSuggestedSectionVisible(true);
           return;
         }
@@ -1377,10 +1343,7 @@
     async function loadSuggestions() {
       const container = document.getElementById('suggested-results');
       const heading = document.getElementById('suggested-heading');
-      const loadMoreBtn = document.getElementById('suggested-load-more-btn');
       if (!container) return;
-
-      setLoadMoreState(loadMoreBtn, 'hidden');
 
       const history = getWatchHistory();
       const seedChannel = history.length ? history[0].channelTitle : null;
@@ -1396,7 +1359,6 @@
         suggestedPageToken = cached.nextPageToken;
         suggestedActiveMode = cached.mode;
         suggestedActiveSeed = cached.mode === 'channel' ? seedChannel : null;
-        setLoadMoreState(loadMoreBtn, suggestedPageToken ? 'idle' : 'hidden');
         return;
       }
 
@@ -1435,7 +1397,6 @@
         suggestedPageToken = pageToken;
         suggestedActiveMode = mode;
         suggestedActiveSeed = mode === 'channel' ? seedChannel : null;
-        setLoadMoreState(loadMoreBtn, suggestedPageToken ? 'idle' : 'hidden');
 
         setSuggestedCache(seedKey, results, headingText, mode, pageToken);
       } catch (err) {
@@ -1445,14 +1406,13 @@
 
     /**
      * Fetch the next page of whichever suggestion source is active
-     * (channel-seeded search or trending) and append it.
+     * (channel-seeded search or trending) and append it. Triggered by the
+     * infinite-scroll sentinel, not a click.
      */
     async function loadMoreSuggestions() {
       if (!suggestedPageToken) return;
 
       const container = document.getElementById('suggested-results');
-      const btn = document.getElementById('suggested-load-more-btn');
-      setLoadMoreState(btn, 'loading');
 
       try {
         let data;
@@ -1469,18 +1429,39 @@
         renderResultsGrid(container, suggestedResults, "Couldn't load suggestions.");
 
         suggestedPageToken = data.nextPageToken;
-        setLoadMoreState(btn, suggestedPageToken ? 'idle' : 'hidden');
       } catch (err) {
-        setLoadMoreState(btn, 'idle'); // let them retry
+        // Leave suggestedPageToken as-is so the next scroll near the bottom retries.
       }
     }
 
-    function setupLoadMoreButtons() {
-      const searchBtn = document.getElementById('search-load-more-btn');
-      if (searchBtn) searchBtn.addEventListener('click', loadMoreSearchResults);
+    /**
+     * Infinite scroll: an IntersectionObserver watches a 1px sentinel just
+     * under each grid. When it scrolls near the viewport, fetch the next
+     * page automatically — no button, no click. `hasMoreFn` is checked
+     * fresh on every intersection (state changes as pages load), and a
+     * `loading` flag stops overlapping fetches while one is in flight.
+     */
+    function setupInfiniteScroll(sentinelId, statusId, hasMoreFn, loadMoreFn) {
+      const sentinel = document.getElementById(sentinelId);
+      const status = document.getElementById(statusId);
+      if (!sentinel || !('IntersectionObserver' in window)) return;
 
-      const suggestedBtn = document.getElementById('suggested-load-more-btn');
-      if (suggestedBtn) suggestedBtn.addEventListener('click', loadMoreSuggestions);
+      let loading = false;
+
+      const observer = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        if (loading || !hasMoreFn()) return;
+
+        loading = true;
+        if (status) status.hidden = false;
+
+        loadMoreFn().finally(function () {
+          loading = false;
+          if (status) status.hidden = true;
+        });
+      }, { rootMargin: '600px 0px' });
+
+      observer.observe(sentinel);
     }
 
     function setSuggestedSectionVisible(visible) {
@@ -1893,7 +1874,8 @@
       setupVideoModalControls();
       setupVideoModalDrag();
       setupGridTabs();
-      setupLoadMoreButtons();
+      setupInfiniteScroll('search-load-more-sentinel', 'search-load-more-status', function () { return !!searchPageToken; }, loadMoreSearchResults);
+      setupInfiniteScroll('suggested-load-more-sentinel', 'suggested-load-more-status', function () { return !!suggestedPageToken; }, loadMoreSuggestions);
       loadSuggestions();
 
       window.addEventListener('beforeunload', saveCurrentProgress);
@@ -1961,7 +1943,8 @@
       </div>
       <div id="suggested-panel">
         <div id="suggested-results" class="search-results" aria-live="polite"></div>
-        <button type="button" id="suggested-load-more-btn" class="load-more-btn" hidden>Load more</button>
+        <div id="suggested-load-more-sentinel" class="load-more-sentinel" aria-hidden="true"></div>
+        <p id="suggested-load-more-status" class="load-more-status" hidden>Loading more…</p>
       </div>
       <div id="history-panel" hidden>
         <div id="history-results" class="search-results" aria-live="polite"></div>
@@ -1979,7 +1962,8 @@
     </div>
 
     <div id="search-results" class="search-results" aria-live="polite"></div>
-    <button type="button" id="search-load-more-btn" class="load-more-btn" hidden>Load more</button>
+    <div id="search-load-more-sentinel" class="load-more-sentinel" aria-hidden="true"></div>
+    <p id="search-load-more-status" class="load-more-status" hidden>Loading more…</p>
 
     <footer class="page-footer">
       <hr class="hairline" />
