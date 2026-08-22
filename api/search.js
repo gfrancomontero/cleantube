@@ -7,19 +7,23 @@
  * server-side, and is never sent to the client.
  *
  * Three modes, one endpoint:
- *   GET /api/search?q=<query>     -> search
- *   GET /api/search?trending=1    -> "trending now" fallback for the
- *                                     suggested-videos grid when a visitor
- *                                     has no watch history yet
+ *   GET /api/search?q=<query>[&pageToken=...]    -> search
+ *   GET /api/search?trending=1[&pageToken=...]   -> "trending now" fallback
+ *                                     for the suggested-videos grid when a
+ *                                     visitor has no watch history yet
  *   GET /api/search?id=<videoId>  -> single-video lookup (used to backfill
  *                                     title/channel/thumbnail for videos
  *                                     opened by pasted link, so they can be
  *                                     recorded into watch history)
  *
- * All three return the same shape:
+ * `pageToken` (optional, on the two list modes) requests the next page of
+ * the same query/chart — pass back the `nextPageToken` from the previous
+ * response to power a "load more" button.
+ *
+ * The two list modes return:
  *   { results: [{ videoId, title, channelTitle, thumbnailUrl, publishedAt,
- *                  viewCount, duration }] }
- * except the single-video lookup, which returns { result: {...} }.
+ *                  viewCount, duration }], nextPageToken: string | null }
+ * The single-video lookup returns { result: {...} }.
  */
 module.exports = async function handler(req, res) {
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -34,9 +38,10 @@ module.exports = async function handler(req, res) {
   // Vercel populates this from the request's geo-IP for every request that
   // hits a serverless function — no extra lookup needed.
   const viewerCountry = (req.headers['x-vercel-ip-country'] || '').toString().toUpperCase();
+  const pageToken = (req.query.pageToken || '').toString().trim();
 
   if (req.query.trending === '1') {
-    await handleTrending(res, apiKey, viewerCountry || 'US');
+    await handleTrending(res, apiKey, viewerCountry || 'US', pageToken);
     return;
   }
 
@@ -52,7 +57,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  await handleSearch(res, apiKey, viewerCountry, query);
+  await handleSearch(res, apiKey, viewerCountry, query, pageToken);
 };
 
 /**
@@ -77,9 +82,11 @@ function toResult(videoId, snippet, details) {
   };
 }
 
-async function handleSearch(res, apiKey, viewerCountry, query) {
+async function handleSearch(res, apiKey, viewerCountry, query, pageToken) {
   // Over-fetch a bit since some candidates get filtered out below
-  // (geo-restricted or not embeddable), then trim back down to 12.
+  // (geo-restricted or not embeddable) — unlike the old fixed-page version
+  // we no longer trim the survivors back down to a fixed count, since
+  // "load more" (via nextPageToken) is now how a visitor gets more.
   const searchParams = new URLSearchParams({
     part: 'snippet',
     type: 'video',
@@ -87,6 +94,10 @@ async function handleSearch(res, apiKey, viewerCountry, query) {
     q: query,
     key: apiKey,
   });
+
+  if (pageToken) {
+    searchParams.set('pageToken', pageToken);
+  }
 
   try {
     const searchResponse = await fetch('https://www.googleapis.com/youtube/v3/search?' + searchParams.toString());
@@ -98,12 +109,14 @@ async function handleSearch(res, apiKey, viewerCountry, query) {
       return;
     }
 
+    const nextPageToken = searchData.nextPageToken || null;
+
     const candidates = (Array.isArray(searchData.items) ? searchData.items : [])
       .filter(function (item) { return item.id && item.id.videoId; });
 
     if (!candidates.length) {
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-      res.status(200).json({ results: [] });
+      res.status(200).json({ results: [], nextPageToken: nextPageToken });
       return;
     }
 
@@ -131,13 +144,12 @@ async function handleSearch(res, apiKey, viewerCountry, query) {
 
         return true;
       })
-      .slice(0, 12)
       .map(function (entry) {
         return toResult(entry.item.id.videoId, entry.item.snippet, entry.details);
       });
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-    res.status(200).json({ results: results });
+    res.status(200).json({ results: results, nextPageToken: nextPageToken });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach YouTube.' });
   }
@@ -167,7 +179,7 @@ async function fetchVideosDetails(apiKey, idsCsv) {
  * "Trending now" — the suggested-videos fallback for visitors with no
  * watch history yet. YouTube's own most-popular chart, region-scoped.
  */
-async function handleTrending(res, apiKey, regionCode) {
+async function handleTrending(res, apiKey, regionCode, pageToken) {
   const params = new URLSearchParams({
     part: 'snippet,contentDetails,statistics',
     chart: 'mostPopular',
@@ -175,6 +187,10 @@ async function handleTrending(res, apiKey, regionCode) {
     regionCode: regionCode,
     key: apiKey,
   });
+
+  if (pageToken) {
+    params.set('pageToken', pageToken);
+  }
 
   try {
     const response = await fetch('https://www.googleapis.com/youtube/v3/videos?' + params.toString());
@@ -192,7 +208,7 @@ async function handleTrending(res, apiKey, regionCode) {
     });
 
     res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600');
-    res.status(200).json({ results: results });
+    res.status(200).json({ results: results, nextPageToken: data.nextPageToken || null });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach YouTube.' });
   }

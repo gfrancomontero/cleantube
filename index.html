@@ -461,6 +461,36 @@
       padding: 1rem 0;
     }
 
+    .load-more-btn {
+      display: block;
+      margin: 0.5rem auto 2rem;
+      padding: 0.7rem 1.75rem;
+      border: 1px solid var(--hairline);
+      background: transparent;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .load-more-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .load-more-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .load-more-btn[hidden] {
+      display: none;
+    }
+
     @media (max-width: 480px) {
       .field-row {
         gap: 0.4rem;
@@ -849,11 +879,16 @@
     /**
      * Query the /api/search serverless function (which holds the YouTube
      * Data API key server-side via the YOUTUBE_API_KEY env var) for videos
-     * matching a search term. Returns an array of
-     * { videoId, title, channelTitle, thumbnailUrl, publishedAt, viewCount }.
+     * matching a search term. Pass the previous response's `nextPageToken`
+     * to fetch the following page (used by "load more"). Returns
+     * { results: [{ videoId, title, channelTitle, thumbnailUrl,
+     *               publishedAt, viewCount, duration }], nextPageToken }.
      */
-    async function searchYouTubeVideos(query) {
-      const response = await fetch('/api/search?q=' + encodeURIComponent(query));
+    async function searchYouTubeVideos(query, pageToken) {
+      let url = '/api/search?q=' + encodeURIComponent(query);
+      if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+
+      const response = await fetch(url);
       const data = await response.json().catch(function () { return null; });
 
       if (!response.ok) {
@@ -861,7 +896,10 @@
         throw new Error(reason || 'YouTube search failed.');
       }
 
-      return (data && Array.isArray(data.results)) ? data.results : [];
+      return {
+        results: (data && Array.isArray(data.results)) ? data.results : [],
+        nextPageToken: (data && data.nextPageToken) || null,
+      };
     }
 
     /**
@@ -1067,32 +1105,82 @@
     }
 
     /**
+     * Generic "load more" button state: hidden when there's nothing more
+     * to fetch, idle/clickable when there is, disabled+relabeled mid-fetch.
+     */
+    function setLoadMoreState(button, state) {
+      if (!button) return;
+
+      if (state === 'hidden') {
+        button.hidden = true;
+        return;
+      }
+
+      button.hidden = false;
+      button.disabled = state === 'loading';
+      button.textContent = state === 'loading' ? 'Loading…' : 'Load more';
+    }
+
+    /**
      * Run a search and render the results. Guards against out-of-order
      * responses (e.g. a fast-typed later query resolving before an earlier
      * one) by only applying the response that matches the latest request.
      */
     let searchRequestId = 0;
+    let searchActiveQuery = '';
+    let searchPageToken = null;
 
     async function runSearch(query) {
       if (!query) return;
 
       const requestId = ++searchRequestId;
+      searchActiveQuery = query;
+      searchPageToken = null;
 
       setSuggestedSectionVisible(false);
       setToolbarVisible(false);
       setSearchStatus('Searching…');
+      setLoadMoreState(document.getElementById('search-load-more-btn'), 'hidden');
 
       try {
-        const results = await searchYouTubeVideos(query);
+        const data = await searchYouTubeVideos(query);
         if (requestId !== searchRequestId) return;
 
-        currentResults = results;
+        currentResults = data.results;
+        searchPageToken = data.nextPageToken;
+
         const select = document.getElementById('sort-select');
         renderSearchResults(sortResults(currentResults, select ? select.value : 'relevance'));
         setToolbarVisible(currentResults.length > 0);
+        setLoadMoreState(document.getElementById('search-load-more-btn'), searchPageToken ? 'idle' : 'hidden');
       } catch (err) {
         if (requestId !== searchRequestId) return;
         setSearchStatus('Search failed: ' + err.message);
+      }
+    }
+
+    /**
+     * Fetch the next page of the currently active search and append it.
+     */
+    async function loadMoreSearchResults() {
+      if (!searchPageToken || !searchActiveQuery) return;
+
+      const requestId = searchRequestId;
+      const btn = document.getElementById('search-load-more-btn');
+      setLoadMoreState(btn, 'loading');
+
+      try {
+        const data = await searchYouTubeVideos(searchActiveQuery, searchPageToken);
+        if (requestId !== searchRequestId) return; // a new search started meanwhile
+
+        currentResults = currentResults.concat(data.results);
+        searchPageToken = data.nextPageToken;
+
+        const select = document.getElementById('sort-select');
+        renderSearchResults(sortResults(currentResults, select ? select.value : 'relevance'));
+        setLoadMoreState(btn, searchPageToken ? 'idle' : 'hidden');
+      } catch (err) {
+        setLoadMoreState(btn, 'idle'); // let them retry
       }
     }
 
@@ -1123,8 +1211,11 @@
         if (!query) {
           searchRequestId++; // invalidate any in-flight request
           currentResults = [];
+          searchActiveQuery = '';
+          searchPageToken = null;
           setToolbarVisible(false);
           setSearchStatus('');
+          setLoadMoreState(document.getElementById('search-load-more-btn'), 'hidden');
           setSuggestedSectionVisible(true);
           return;
         }
@@ -1234,38 +1325,62 @@
         if (!data || data.seedKey !== seedKey) return null;
         if (Date.now() - (data.cachedAt || 0) > SUGGESTED_CACHE_MS) return null;
 
-        return { results: data.results, heading: data.heading };
+        return {
+          results: data.results,
+          heading: data.heading,
+          mode: data.mode,
+          nextPageToken: data.nextPageToken || null,
+        };
       } catch (_) {
         return null;
       }
     }
 
-    function setSuggestedCache(seedKey, results, heading) {
+    function setSuggestedCache(seedKey, results, heading, mode, nextPageToken) {
       try {
         localStorage.setItem(SUGGESTED_CACHE_KEY, JSON.stringify({
           seedKey: seedKey,
           results: results,
           heading: heading,
+          mode: mode,
+          nextPageToken: nextPageToken || null,
           cachedAt: Date.now(),
         }));
       } catch (_) {}
     }
 
-    async function fetchTrending() {
-      const response = await fetch('/api/search?trending=1');
+    async function fetchTrending(pageToken) {
+      let url = '/api/search?trending=1';
+      if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+
+      const response = await fetch(url);
       const data = await response.json().catch(function () { return null; });
 
       if (!response.ok) {
         throw new Error((data && data.error) || 'Failed to load trending videos.');
       }
 
-      return (data && Array.isArray(data.results)) ? data.results : [];
+      return {
+        results: (data && Array.isArray(data.results)) ? data.results : [],
+        nextPageToken: (data && data.nextPageToken) || null,
+      };
     }
+
+    // Pagination state for the suggested grid: whichever of "channel" or
+    // "trending" mode is currently active, so "load more" knows what to
+    // keep fetching.
+    let suggestedResults = [];
+    let suggestedPageToken = null;
+    let suggestedActiveMode = null;
+    let suggestedActiveSeed = null;
 
     async function loadSuggestions() {
       const container = document.getElementById('suggested-results');
       const heading = document.getElementById('suggested-heading');
+      const loadMoreBtn = document.getElementById('suggested-load-more-btn');
       if (!container) return;
+
+      setLoadMoreState(loadMoreBtn, 'hidden');
 
       const history = getWatchHistory();
       const seedChannel = history.length ? history[0].channelTitle : null;
@@ -1276,6 +1391,12 @@
         lastSuggestedHeading = cached.heading;
         if (heading) heading.textContent = cached.heading;
         renderResultsGrid(container, cached.results, "Couldn't load suggestions.");
+
+        suggestedResults = cached.results;
+        suggestedPageToken = cached.nextPageToken;
+        suggestedActiveMode = cached.mode;
+        suggestedActiveSeed = cached.mode === 'channel' ? seedChannel : null;
+        setLoadMoreState(loadMoreBtn, suggestedPageToken ? 'idle' : 'hidden');
         return;
       }
 
@@ -1284,26 +1405,82 @@
       try {
         let results = [];
         let headingText = 'Trending now';
+        let mode = 'trending';
+        let pageToken = null;
 
         if (seedChannel) {
           const watchedIds = new Set(history.map(function (h) { return h.videoId; }));
-          const channelResults = await searchYouTubeVideos(seedChannel).catch(function () { return []; });
-          results = channelResults.filter(function (r) { return !watchedIds.has(r.videoId); }).slice(0, 12);
-          if (results.length) headingText = 'Because you watched ' + seedChannel;
+          const channelData = await searchYouTubeVideos(seedChannel).catch(function () { return { results: [], nextPageToken: null }; });
+          results = channelData.results.filter(function (r) { return !watchedIds.has(r.videoId); });
+          if (results.length) {
+            headingText = 'Because you watched ' + seedChannel;
+            mode = 'channel';
+            pageToken = channelData.nextPageToken;
+          }
         }
 
         if (!results.length) {
-          results = await fetchTrending();
+          const trendingData = await fetchTrending();
+          results = trendingData.results;
+          pageToken = trendingData.nextPageToken;
           headingText = 'Trending now';
+          mode = 'trending';
         }
 
         lastSuggestedHeading = headingText;
         if (heading) heading.textContent = headingText;
         renderResultsGrid(container, results, "Couldn't load suggestions.");
-        setSuggestedCache(seedKey, results, headingText);
+
+        suggestedResults = results;
+        suggestedPageToken = pageToken;
+        suggestedActiveMode = mode;
+        suggestedActiveSeed = mode === 'channel' ? seedChannel : null;
+        setLoadMoreState(loadMoreBtn, suggestedPageToken ? 'idle' : 'hidden');
+
+        setSuggestedCache(seedKey, results, headingText, mode, pageToken);
       } catch (err) {
         renderResultsGrid(container, [], "Couldn't load suggestions.");
       }
+    }
+
+    /**
+     * Fetch the next page of whichever suggestion source is active
+     * (channel-seeded search or trending) and append it.
+     */
+    async function loadMoreSuggestions() {
+      if (!suggestedPageToken) return;
+
+      const container = document.getElementById('suggested-results');
+      const btn = document.getElementById('suggested-load-more-btn');
+      setLoadMoreState(btn, 'loading');
+
+      try {
+        let data;
+
+        if (suggestedActiveMode === 'channel' && suggestedActiveSeed) {
+          data = await searchYouTubeVideos(suggestedActiveSeed, suggestedPageToken);
+          const watchedIds = new Set(getWatchHistory().map(function (h) { return h.videoId; }));
+          data = { results: data.results.filter(function (r) { return !watchedIds.has(r.videoId); }), nextPageToken: data.nextPageToken };
+        } else {
+          data = await fetchTrending(suggestedPageToken);
+        }
+
+        suggestedResults = suggestedResults.concat(data.results);
+        renderResultsGrid(container, suggestedResults, "Couldn't load suggestions.");
+
+        suggestedPageToken = data.nextPageToken;
+        setLoadMoreState(btn, suggestedPageToken ? 'idle' : 'hidden');
+      } catch (err) {
+        setLoadMoreState(btn, 'idle'); // let them retry
+      }
+    }
+
+    function setupLoadMoreButtons() {
+      const searchBtn = document.getElementById('search-load-more-btn');
+      if (searchBtn) searchBtn.addEventListener('click', loadMoreSearchResults);
+
+      const suggestedBtn = document.getElementById('suggested-load-more-btn');
+      if (suggestedBtn) suggestedBtn.addEventListener('click', loadMoreSuggestions);
     }
 
     function setSuggestedSectionVisible(visible) {
@@ -1716,6 +1893,7 @@
       setupVideoModalControls();
       setupVideoModalDrag();
       setupGridTabs();
+      setupLoadMoreButtons();
       loadSuggestions();
 
       window.addEventListener('beforeunload', saveCurrentProgress);
@@ -1783,6 +1961,7 @@
       </div>
       <div id="suggested-panel">
         <div id="suggested-results" class="search-results" aria-live="polite"></div>
+        <button type="button" id="suggested-load-more-btn" class="load-more-btn" hidden>Load more</button>
       </div>
       <div id="history-panel" hidden>
         <div id="history-results" class="search-results" aria-live="polite"></div>
@@ -1800,6 +1979,7 @@
     </div>
 
     <div id="search-results" class="search-results" aria-live="polite"></div>
+    <button type="button" id="search-load-more-btn" class="load-more-btn" hidden>Load more</button>
 
     <footer class="page-footer">
       <hr class="hairline" />
