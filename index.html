@@ -300,6 +300,11 @@
       display: none;
     }
 
+    #search-panel .results-toolbar {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+
     .results-toolbar select {
       font-family: 'Inter', sans-serif;
       font-size: 0.78rem;
@@ -1113,7 +1118,10 @@
       searchActiveQuery = query;
       searchPageToken = null;
 
-      setSuggestedSectionVisible(false);
+      const searchTabBtn = document.getElementById('search-tab-btn');
+      if (searchTabBtn) searchTabBtn.hidden = false;
+      switchToTab('search');
+
       setToolbarVisible(false);
       setSearchStatus('Searching…');
 
@@ -1187,7 +1195,10 @@
           searchPageToken = null;
           setToolbarVisible(false);
           setSearchStatus('');
-          setSuggestedSectionVisible(true);
+
+          const searchTabBtn = document.getElementById('search-tab-btn');
+          if (searchTabBtn) searchTabBtn.hidden = true;
+          switchToTab('suggested');
           return;
         }
 
@@ -1599,9 +1610,43 @@
       observer.observe(sentinel);
     }
 
-    function setSuggestedSectionVisible(visible) {
-      const section = document.getElementById('suggested-section');
-      if (section) section.hidden = !visible;
+    /**
+     * Switch the active tab/panel among Suggested, History, Saved and
+     * Search results. Shared by the tab click handlers and by
+     * runSearch/clear-input, so a search never hides the other tabs —
+     * it just adds a fourth one and switches to it.
+     */
+    function switchToTab(target) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const clearBtn = document.getElementById('clear-history-btn');
+      const suggestedPanel = document.getElementById('suggested-panel');
+      const historyPanel = document.getElementById('history-panel');
+      const savedPanel = document.getElementById('saved-panel');
+      const searchPanel = document.getElementById('search-panel');
+      const heading = document.getElementById('suggested-heading');
+
+      tabs.forEach(function (t) {
+        t.classList.toggle('is-active', t.getAttribute('data-tab') === target);
+      });
+
+      if (suggestedPanel) suggestedPanel.hidden = target !== 'suggested';
+      if (historyPanel) historyPanel.hidden = target !== 'history';
+      if (savedPanel) savedPanel.hidden = target !== 'saved';
+      if (searchPanel) searchPanel.hidden = target !== 'search';
+
+      if (target === 'history') {
+        if (heading) heading.textContent = 'Watch history';
+        renderHistoryPanel();
+      } else if (target === 'saved') {
+        if (heading) heading.textContent = 'Saved videos';
+        renderSavedPanel();
+      } else if (target === 'search') {
+        if (heading) heading.textContent = 'Search results';
+        if (clearBtn) clearBtn.hidden = true;
+      } else {
+        if (heading) heading.textContent = lastSuggestedHeading;
+        if (clearBtn) clearBtn.hidden = true;
+      }
     }
 
     /**
@@ -1640,38 +1685,18 @@
     }
 
     /**
-     * Tabs between the "Suggested", "History" and "Saved" panels.
+     * Tabs between the "Suggested", "History", "Saved" and (once a search
+     * has been made) "Search results" panels.
      */
     function setupGridTabs() {
       const tabs = document.querySelectorAll('.tab-btn');
       const clearBtn = document.getElementById('clear-history-btn');
-      const suggestedPanel = document.getElementById('suggested-panel');
-      const historyPanel = document.getElementById('history-panel');
-      const savedPanel = document.getElementById('saved-panel');
-      const heading = document.getElementById('suggested-heading');
 
       if (!tabs.length) return;
 
       tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
-          tabs.forEach(function (t) { t.classList.remove('is-active'); });
-          tab.classList.add('is-active');
-
-          const target = tab.getAttribute('data-tab');
-          if (suggestedPanel) suggestedPanel.hidden = target !== 'suggested';
-          if (historyPanel) historyPanel.hidden = target !== 'history';
-          if (savedPanel) savedPanel.hidden = target !== 'saved';
-
-          if (target === 'history') {
-            if (heading) heading.textContent = 'Watch history';
-            renderHistoryPanel();
-          } else if (target === 'saved') {
-            if (heading) heading.textContent = 'Saved videos';
-            renderSavedPanel();
-          } else {
-            if (heading) heading.textContent = lastSuggestedHeading;
-            if (clearBtn) clearBtn.hidden = true;
-          }
+          switchToTab(tab.getAttribute('data-tab'));
         });
       });
 
@@ -2101,6 +2126,7 @@
         <button type="button" class="tab-btn is-active" data-tab="suggested">Suggested</button>
         <button type="button" class="tab-btn" data-tab="history">History</button>
         <button type="button" class="tab-btn" data-tab="saved">Saved</button>
+        <button type="button" class="tab-btn" data-tab="search" id="search-tab-btn" hidden>Search results</button>
         <button type="button" class="clear-history-btn" id="clear-history-btn" hidden>Clear history</button>
       </div>
       <div id="suggested-panel">
@@ -2114,21 +2140,21 @@
       <div id="saved-panel" hidden>
         <div id="saved-results" class="search-results" aria-live="polite"></div>
       </div>
+      <div id="search-panel" hidden>
+        <div id="results-toolbar" class="results-toolbar" hidden>
+          <label for="sort-select" class="visually-hidden">Sort results by</label>
+          <select id="sort-select">
+            <option value="relevance">Relevance</option>
+            <option value="views">Views</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
+        <div id="search-results" class="search-results" aria-live="polite"></div>
+        <div id="search-load-more-sentinel" class="load-more-sentinel" aria-hidden="true"></div>
+        <p id="search-load-more-status" class="load-more-status" hidden>Loading more…</p>
+      </div>
     </div>
-
-    <div id="results-toolbar" class="results-toolbar" hidden>
-      <label for="sort-select" class="visually-hidden">Sort results by</label>
-      <select id="sort-select">
-        <option value="relevance">Relevance</option>
-        <option value="views">Views</option>
-        <option value="newest">Newest</option>
-        <option value="oldest">Oldest</option>
-      </select>
-    </div>
-
-    <div id="search-results" class="search-results" aria-live="polite"></div>
-    <div id="search-load-more-sentinel" class="load-more-sentinel" aria-hidden="true"></div>
-    <p id="search-load-more-status" class="load-more-status" hidden>Loading more…</p>
 
     <footer class="page-footer">
       <hr class="hairline" />
