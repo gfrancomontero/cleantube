@@ -588,6 +588,11 @@
       border-color: var(--text);
     }
 
+    .like-btn.is-liked {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
     .video-modal-actions .material-symbols-outlined {
       font-size: 16px;
     }
@@ -1233,6 +1238,134 @@
     }
 
     /**
+     * Saved (liked) videos — same client-side-only storage as watch
+     * history, but only added/removed explicitly via the heart button in
+     * the video modal, not automatically on watch.
+     */
+    const LIKED_KEY = 'cleantube:liked';
+    const LIKED_MAX = 200;
+
+    function getLikedVideos() {
+      try {
+        const raw = localStorage.getItem(LIKED_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function isVideoLiked(videoId) {
+      return getLikedVideos().some(function (v) { return v.videoId === videoId; });
+    }
+
+    function saveLikedVideo(entry) {
+      if (!entry || !entry.videoId) return;
+
+      try {
+        const liked = getLikedVideos().filter(function (v) { return v.videoId !== entry.videoId; });
+
+        liked.unshift({
+          videoId: entry.videoId,
+          title: entry.title || '',
+          channelTitle: entry.channelTitle || '',
+          thumbnailUrl: entry.thumbnailUrl || '',
+          duration: entry.duration || null,
+          likedAt: Date.now(),
+        });
+
+        localStorage.setItem(LIKED_KEY, JSON.stringify(liked.slice(0, LIKED_MAX)));
+      } catch (_) {}
+    }
+
+    function removeLikedVideo(videoId) {
+      try {
+        const liked = getLikedVideos().filter(function (v) { return v.videoId !== videoId; });
+        localStorage.setItem(LIKED_KEY, JSON.stringify(liked));
+      } catch (_) {}
+    }
+
+    function clearLikedVideos() {
+      try { localStorage.removeItem(LIKED_KEY); } catch (_) {}
+    }
+
+    /**
+     * Reflect the current video's saved state on the like button.
+     */
+    function updateLikeButton(videoId) {
+      const btn = document.getElementById('video-like-btn');
+      if (!btn) return;
+
+      const liked = !!videoId && isVideoLiked(videoId);
+
+      btn.classList.toggle('is-liked', liked);
+      btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+      btn.setAttribute('aria-label', liked ? 'Remove from saved' : 'Save video');
+
+      const fallbackEl = btn.querySelector('.fallback-icon');
+      if (fallbackEl) fallbackEl.textContent = liked ? '❤️' : '🤍';
+    }
+
+    /**
+     * Toggle the saved state of whichever video is currently open, using
+     * whatever metadata we have for it (search results carry it already;
+     * pasted links backfill it asynchronously — see recordWatch).
+     */
+    function toggleLikeCurrentVideo() {
+      if (!currentVideoId) return;
+
+      if (isVideoLiked(currentVideoId)) {
+        removeLikedVideo(currentVideoId);
+      } else {
+        saveLikedVideo({
+          videoId: currentVideoId,
+          title: (currentVideoMeta && currentVideoMeta.title) || '',
+          channelTitle: (currentVideoMeta && currentVideoMeta.channelTitle) || '',
+          thumbnailUrl: (currentVideoMeta && currentVideoMeta.thumbnailUrl) || '',
+          duration: (currentVideoMeta && currentVideoMeta.duration) || null,
+        });
+      }
+
+      updateLikeButton(currentVideoId);
+      refreshSavedPanelIfVisible();
+    }
+
+    /**
+     * Render the saved-videos panel (most recently saved first).
+     */
+    function renderSavedPanel() {
+      const container = document.getElementById('saved-results');
+      const clearBtn = document.getElementById('clear-history-btn');
+      const liked = getLikedVideos();
+
+      renderResultsGrid(
+        container,
+        liked.map(function (v) {
+          return {
+            videoId: v.videoId,
+            title: v.title,
+            channelTitle: v.channelTitle,
+            thumbnailUrl: v.thumbnailUrl,
+            duration: v.duration,
+            historyMeta: 'Saved ' + formatRelativeDate(new Date(v.likedAt).toISOString()),
+          };
+        }),
+        "You haven't saved anything yet."
+      );
+
+      if (clearBtn) {
+        clearBtn.textContent = 'Clear saved';
+        clearBtn.dataset.clearTarget = 'saved';
+        clearBtn.hidden = !liked.length;
+      }
+    }
+
+    function refreshSavedPanelIfVisible() {
+      const panel = document.getElementById('saved-panel');
+      if (panel && !panel.hidden) renderSavedPanel();
+    }
+
+    /**
      * Look up a single video's metadata (used to backfill title/channel/
      * thumbnail for videos opened via pasted link, so watch history shows
      * more than just an ID).
@@ -1264,10 +1397,12 @@
         addToWatchHistory(info);
         refreshHistoryPanelIfVisible();
 
-        // Backfill the modal title bar if still on this same video.
+        // Backfill the modal title bar (and like-button metadata) if still
+        // on this same video.
         if (currentVideoId === videoId) {
           const titleEl = document.getElementById('video-modal-title');
           if (titleEl && !titleEl.textContent) titleEl.textContent = info.title;
+          currentVideoMeta = info;
         }
       } catch (_) {}
     }
@@ -1492,7 +1627,11 @@
         "You haven't watched anything yet."
       );
 
-      if (clearBtn) clearBtn.hidden = !history.length;
+      if (clearBtn) {
+        clearBtn.textContent = 'Clear history';
+        clearBtn.dataset.clearTarget = 'history';
+        clearBtn.hidden = !history.length;
+      }
     }
 
     function refreshHistoryPanelIfVisible() {
@@ -1501,13 +1640,14 @@
     }
 
     /**
-     * Tabs between the "Suggested" and "History" panels.
+     * Tabs between the "Suggested", "History" and "Saved" panels.
      */
     function setupGridTabs() {
       const tabs = document.querySelectorAll('.tab-btn');
       const clearBtn = document.getElementById('clear-history-btn');
       const suggestedPanel = document.getElementById('suggested-panel');
       const historyPanel = document.getElementById('history-panel');
+      const savedPanel = document.getElementById('saved-panel');
       const heading = document.getElementById('suggested-heading');
 
       if (!tabs.length) return;
@@ -1520,10 +1660,14 @@
           const target = tab.getAttribute('data-tab');
           if (suggestedPanel) suggestedPanel.hidden = target !== 'suggested';
           if (historyPanel) historyPanel.hidden = target !== 'history';
+          if (savedPanel) savedPanel.hidden = target !== 'saved';
 
           if (target === 'history') {
             if (heading) heading.textContent = 'Watch history';
             renderHistoryPanel();
+          } else if (target === 'saved') {
+            if (heading) heading.textContent = 'Saved videos';
+            renderSavedPanel();
           } else {
             if (heading) heading.textContent = lastSuggestedHeading;
             if (clearBtn) clearBtn.hidden = true;
@@ -1533,8 +1677,13 @@
 
       if (clearBtn) {
         clearBtn.addEventListener('click', function () {
-          clearWatchHistory();
-          renderHistoryPanel();
+          if (clearBtn.dataset.clearTarget === 'saved') {
+            clearLikedVideos();
+            renderSavedPanel();
+          } else {
+            clearWatchHistory();
+            renderHistoryPanel();
+          }
         });
       }
     }
@@ -1646,6 +1795,7 @@
     let ytPlayerReady = false;
     let pendingLoad = null;
     let currentVideoId = null;
+    let currentVideoMeta = null;
 
     function loadYouTubeIframeApi() {
       if (window.YT && window.YT.Player) {
@@ -1745,6 +1895,9 @@
       loadIntoPlayer(parsed);
       updateMediaSession(meta && meta.title);
 
+      currentVideoMeta = meta || null;
+      updateLikeButton(parsed.videoId);
+
       if (parsed.videoId) {
         recordWatch(parsed.videoId, meta);
       }
@@ -1763,6 +1916,7 @@
 
       restoreVideoModal();
       currentVideoId = null;
+      currentVideoMeta = null;
     }
 
     function minimizeVideoModal() {
@@ -1784,9 +1938,14 @@
     }
 
     function setupVideoModalControls() {
+      const likeBtn = document.getElementById('video-like-btn');
       const minimizeBtn = document.getElementById('video-minimize-btn');
       const closeBtn = document.getElementById('video-close-btn');
       const backdrop = document.querySelector('.video-modal-backdrop');
+
+      if (likeBtn) {
+        likeBtn.addEventListener('click', toggleLikeCurrentVideo);
+      }
 
       if (minimizeBtn) {
         minimizeBtn.addEventListener('click', minimizeVideoModal);
@@ -1797,7 +1956,9 @@
       }
 
       if (backdrop) {
-        backdrop.addEventListener('click', closeVideoModal);
+        // Clicking outside the modal minimizes rather than closes, so
+        // playback (and any progress) isn't lost by an accidental click.
+        backdrop.addEventListener('click', minimizeVideoModal);
       }
     }
 
@@ -1939,6 +2100,7 @@
       <div class="grid-tabs">
         <button type="button" class="tab-btn is-active" data-tab="suggested">Suggested</button>
         <button type="button" class="tab-btn" data-tab="history">History</button>
+        <button type="button" class="tab-btn" data-tab="saved">Saved</button>
         <button type="button" class="clear-history-btn" id="clear-history-btn" hidden>Clear history</button>
       </div>
       <div id="suggested-panel">
@@ -1948,6 +2110,9 @@
       </div>
       <div id="history-panel" hidden>
         <div id="history-results" class="search-results" aria-live="polite"></div>
+      </div>
+      <div id="saved-panel" hidden>
+        <div id="saved-results" class="search-results" aria-live="polite"></div>
       </div>
     </div>
 
@@ -1976,6 +2141,10 @@
       <div class="video-modal-bar" id="video-modal-bar">
         <span class="video-modal-title" id="video-modal-title"></span>
         <div class="video-modal-actions">
+          <button type="button" id="video-like-btn" class="like-btn" aria-label="Save video" aria-pressed="false">
+            <span class="material-symbols-outlined" aria-hidden="true">favorite</span>
+            <span class="fallback-icon" aria-hidden="true">🤍</span>
+          </button>
           <button type="button" id="video-minimize-btn" aria-label="Minimize">
             <span class="material-symbols-outlined" aria-hidden="true">remove</span>
           </button>
