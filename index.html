@@ -507,7 +507,10 @@
 
     .video-modal {
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       z-index: 200;
       display: flex;
       align-items: center;
@@ -517,7 +520,10 @@
 
     .video-modal-backdrop {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       background: rgba(0, 0, 0, 0.8);
     }
 
@@ -535,7 +541,8 @@
     .video-modal-panel {
       position: relative;
       z-index: 1;
-      width: min(880px, 100%);
+      width: 100%;
+      max-width: 880px;
       background: var(--bg);
       border: 1px solid var(--hairline);
       box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
@@ -544,7 +551,8 @@
 
     .video-modal.minimized .video-modal-panel {
       position: fixed;
-      width: min(300px, calc(100vw - 32px));
+      width: calc(100vw - 32px);
+      max-width: 300px;
       right: 16px;
       bottom: 16px;
       touch-action: none;
@@ -605,13 +613,28 @@
     .video-modal-frame {
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 9;
+      /* 16:9 fallback for browsers without aspect-ratio support (older
+         smart TV browsers) — without this the frame has no content to
+         size itself by (the iframe inside is position: absolute) and
+         collapses to 0 height, so nothing is visible even if it's
+         technically playing. Overridden below where aspect-ratio works. */
+      padding-top: 56.25%;
       background: #000;
+    }
+
+    @supports (aspect-ratio: 16 / 9) {
+      .video-modal-frame {
+        padding-top: 0;
+        aspect-ratio: 16 / 9;
+      }
     }
 
     .video-modal-frame iframe {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       border: none;
@@ -619,7 +642,10 @@
 
     .video-modal-catcher {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       display: none;
     }
 
