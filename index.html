@@ -1815,12 +1815,26 @@
      * YouTube IFrame Player API — loaded lazily on first video open, then
      * reused for every subsequent video so the same iframe keeps playing
      * across minimize/restore.
+     *
+     * Some browsers (notably smart TV browsers — LG webOS, Tizen, older
+     * WebKit builds) either never load this script, or load it but never
+     * fire onReady (broken postMessage sandboxing, blocked third-party
+     * storage, etc). In that case there's no JS player object to drive, so
+     * we fall back to a plain <iframe src="…/embed/ID"> — that's the same
+     * mechanism YouTube's own "Embed" HTML uses and needs nothing but
+     * basic iframe support to play. The only cost is losing resume-from-
+     * last-position for that session, since that relies on the JS API's
+     * getCurrentTime().
      */
     let ytPlayer = null;
     let ytPlayerReady = false;
+    let iframeApiFailed = false;
+    let iframeApiTimeoutId = null;
     let pendingLoad = null;
     let currentVideoId = null;
     let currentVideoMeta = null;
+
+    const IFRAME_API_TIMEOUT_MS = 6000;
 
     function loadYouTubeIframeApi() {
       if (window.YT && window.YT.Player) {
@@ -1835,24 +1849,54 @@
       const script = document.createElement('script');
       script.id = 'youtube-iframe-api';
       script.src = 'https://www.youtube.com/iframe_api';
+      script.onerror = handleIframeApiFailure;
       document.head.appendChild(script);
+
+      iframeApiTimeoutId = setTimeout(handleIframeApiFailure, IFRAME_API_TIMEOUT_MS);
+    }
+
+    /**
+     * The JS player API never became usable — switch to plain-iframe
+     * playback for the rest of this session.
+     */
+    function handleIframeApiFailure() {
+      if (ytPlayerReady || iframeApiFailed) return;
+      iframeApiFailed = true;
+
+      if (iframeApiTimeoutId) {
+        clearTimeout(iframeApiTimeoutId);
+        iframeApiTimeoutId = null;
+      }
+
+      if (pendingLoad) {
+        applyFallbackLoad(pendingLoad);
+        pendingLoad = null;
+      }
     }
 
     function initYtPlayer() {
-      ytPlayer = new YT.Player('player-target', {
-        host: 'https://www.youtube-nocookie.com',
-        playerVars: { playsinline: 1, rel: 0 },
-        events: {
-          onReady: function () {
-            ytPlayerReady = true;
-            if (pendingLoad) {
-              applyLoad(pendingLoad);
-              pendingLoad = null;
-            }
+      try {
+        ytPlayer = new YT.Player('player-target', {
+          host: 'https://www.youtube-nocookie.com',
+          playerVars: { playsinline: 1, rel: 0 },
+          events: {
+            onReady: function () {
+              ytPlayerReady = true;
+              if (iframeApiTimeoutId) {
+                clearTimeout(iframeApiTimeoutId);
+                iframeApiTimeoutId = null;
+              }
+              if (pendingLoad) {
+                applyLoad(pendingLoad);
+                pendingLoad = null;
+              }
+            },
+            onStateChange: handlePlayerStateChange,
           },
-          onStateChange: handlePlayerStateChange,
-        },
-      });
+        });
+      } catch (_) {
+        handleIframeApiFailure();
+      }
     }
 
     function handlePlayerStateChange(event) {
@@ -1885,7 +1929,45 @@
       }
     }
 
+    /**
+     * Plain-iframe playback path, used once the JS player API has failed.
+     * No postMessage, no player object — just an <iframe src>, which is
+     * the most broadly compatible way to play a YouTube video anywhere.
+     */
+    function applyFallbackLoad(parsed) {
+      currentVideoId = parsed.videoId || null;
+
+      const target = document.getElementById('player-target');
+      if (!target) return;
+
+      let embedUrl = null;
+
+      if (parsed.playlistId) {
+        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' +
+          encodeURIComponent(parsed.playlistId) + '&autoplay=1&playsinline=1&rel=0';
+      } else if (parsed.videoId) {
+        const resumeSeconds = getSavedProgress(parsed.videoId);
+        const startSeconds = (parsed.startSeconds && parsed.startSeconds > 0) ? parsed.startSeconds : resumeSeconds;
+        embedUrl = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(parsed.videoId) +
+          '?autoplay=1&playsinline=1&rel=0' + (startSeconds ? '&start=' + Math.floor(startSeconds) : '');
+      }
+
+      if (!embedUrl) return;
+
+      target.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = embedUrl;
+      iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      iframe.setAttribute('allowfullscreen', '');
+      target.appendChild(iframe);
+    }
+
     function loadIntoPlayer(parsed) {
+      if (iframeApiFailed) {
+        applyFallbackLoad(parsed);
+        return;
+      }
+
       if (!ytPlayerReady || !ytPlayer) {
         pendingLoad = parsed;
         loadYouTubeIframeApi();
@@ -1934,6 +2016,11 @@
 
       if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
         try { ytPlayer.stopVideo(); } catch (_) {}
+      } else if (iframeApiFailed) {
+        // No player object to stop in fallback mode — clearing the
+        // iframe's src is what actually halts playback.
+        const target = document.getElementById('player-target');
+        if (target) target.innerHTML = '';
       }
 
       const modal = document.getElementById('video-modal');
