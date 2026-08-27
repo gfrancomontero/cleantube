@@ -1956,6 +1956,27 @@
     }
 
     /**
+     * The plain youtube-nocookie.com/embed URL for a parsed video/playlist,
+     * resuming from saved progress where we have it. Shared by the
+     * plain-iframe fallback below and by the top-level TV redirect.
+     */
+    function buildEmbedUrl(parsed) {
+      if (parsed.playlistId) {
+        return 'https://www.youtube-nocookie.com/embed/videoseries?list=' +
+          encodeURIComponent(parsed.playlistId) + '&autoplay=1&playsinline=1&rel=0';
+      }
+
+      if (parsed.videoId) {
+        const resumeSeconds = getSavedProgress(parsed.videoId);
+        const startSeconds = (parsed.startSeconds && parsed.startSeconds > 0) ? parsed.startSeconds : resumeSeconds;
+        return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(parsed.videoId) +
+          '?autoplay=1&playsinline=1&rel=0' + (startSeconds ? '&start=' + Math.floor(startSeconds) : '');
+      }
+
+      return null;
+    }
+
+    /**
      * Plain-iframe playback path, used once the JS player API has failed.
      * No postMessage, no player object — just an <iframe src>, which is
      * the most broadly compatible way to play a YouTube video anywhere.
@@ -1966,18 +1987,7 @@
       const target = document.getElementById('player-target');
       if (!target) return;
 
-      let embedUrl = null;
-
-      if (parsed.playlistId) {
-        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' +
-          encodeURIComponent(parsed.playlistId) + '&autoplay=1&playsinline=1&rel=0';
-      } else if (parsed.videoId) {
-        const resumeSeconds = getSavedProgress(parsed.videoId);
-        const startSeconds = (parsed.startSeconds && parsed.startSeconds > 0) ? parsed.startSeconds : resumeSeconds;
-        embedUrl = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(parsed.videoId) +
-          '?autoplay=1&playsinline=1&rel=0' + (startSeconds ? '&start=' + Math.floor(startSeconds) : '');
-      }
-
+      const embedUrl = buildEmbedUrl(parsed);
       if (!embedUrl) return;
 
       target.innerHTML = '';
@@ -2004,6 +2014,20 @@
     }
 
     /**
+     * Smart TV browsers (LG webOS, Tizen, and similar) generally only
+     * grant hardware video decode/render to the top-level page — not to
+     * video nested inside an <iframe>, which is how the modal player has
+     * to work to stay ad-free/comment-free. On those browsers you'd hear
+     * audio with no picture, since audio doesn't need that same hardware
+     * path. Detected TV browsers skip the modal entirely and get sent to
+     * the video as its own top-level nocookie embed page instead.
+     */
+    function isTvBrowser() {
+      const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+      return /\b(SmartTV|SMART-TV|Smart-TV|WebOS|Web0S|Tizen|NetCast|HbbTV|ADAPI|VIDAA|BRAVIA|GoogleTV|Google TV|CrKey|AFTA|AFTB|AFTM|AFTN|AFTS|AFTT|AppleTV|POV_TV|DuneHD)\b/i.test(ua);
+    }
+
+    /**
      * Video modal: open (full), minimize (draggable PiP), restore, close.
      *
      * `meta` is optional: { title, channelTitle, thumbnailUrl, duration }.
@@ -2013,6 +2037,15 @@
      */
     function openVideoModal(parsed, meta) {
       if (!parsed || (!parsed.videoId && !parsed.playlistId)) return;
+
+      if (isTvBrowser()) {
+        const embedUrl = buildEmbedUrl(parsed);
+        if (embedUrl) {
+          if (parsed.videoId) recordWatch(parsed.videoId, meta);
+          window.location.href = embedUrl;
+        }
+        return;
+      }
 
       const modal = document.getElementById('video-modal');
       const titleEl = document.getElementById('video-modal-title');
